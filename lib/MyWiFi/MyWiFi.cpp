@@ -36,8 +36,10 @@ MyWiFi::MyWiFi(String apSsid) {
 */
 bool MyWiFi::startAPMode() {
   Serial.print(F("Configuring AP mode... "));
+  WiFi.setHostname("TempBuddy-Ctrl");
   WiFi.mode(WiFiMode::WIFI_AP);
-  bool ret = WiFi.softAP(apSsid.c_str());
+  WiFi.softAPConfig(IPAddress(192,168,1,1), IPAddress(0,0,0,0), IPAddress(255,255,255,0));
+  bool ret = WiFi.softAP(apSsid.c_str(), "password123"); // TODO: Locate this somewhere else!
   Serial.println(ret ? F("Complete.") : F("Failed!"));
 
   return ret;
@@ -53,7 +55,7 @@ bool MyWiFi::startAPMode() {
   @return Returns the IP Address of this device in dot notation as String.
 */
 String MyWiFi::getIpAddress() {
-  if (WiFi.getMode() == WiFiMode::WIFI_AP || WiFi.getMode() == WiFiMode::WIFI_AP_STA) {
+  if (WiFi.getMode() == WiFiMode::WIFI_AP) {
 
     return WiFi.softAPIP().toString();
   }
