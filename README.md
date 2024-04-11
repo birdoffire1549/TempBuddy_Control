@@ -6,18 +6,11 @@ The TempBuddy Sensor is device has the ability to sense and report Temperature a
 
 This unit can be pointed at the IP of a TempBuddy Sensor device and read its temp and then react to the temperature by controlling an outlet which can have a Heating or Cooling device attached to it. If no TempBuddy Sensor is connected to this unit then the user has the ability to manually control the attached outlet through the unit hosted webpage. This unit also hosts a webpage that can be accessed using the unit's IP Address via Port 80. Also this unit can be configured by accessing its admin page either via an existing WiFi network the unit is joined to or using the unit's TempBuddy_Ctrl wifi network when it is in AP Mode.
 
-> [!CAUTION]
-> SECURITY RELATED PLEASE NOTE: 
-> Communication with this Device is NOT encrypted. This means that when configuring the 
-> settings of the unit using the Admin page, the data is transmitted to and from the client
-> in clear text on the network you and the unit are connected to. The potential for
-> compromise is highest when doing initial settings with the unit in AP mode as there is no 
-> password used for the TempBuddy_Ctrl network. Be cautious as this could result in the 
-> leaking of target network's SSID and Password when initially setup, also if changing the 
-> unit's admin password don't use one that you use for other sensitive things as it will be 
-> sent to the unit in clear text.
->
-> FYI: The fix for this issue is in progress and expected to be complete soon. (01/10/2024)
+> [!IMPORTANT]
+> Code was recently uploaded that should add SSL Capabilities and better User Authentication,
+> HOWEVER...
+> It has not yet been tested on the Unit and may need some serious debugging before it is ready.
+> I hope to have it test out soon. (04/11/2024)
 
 ### Hosted Endpoints:
 | Endpoint | Description |
