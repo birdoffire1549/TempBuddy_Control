@@ -36,7 +36,7 @@ MyWiFi::MyWiFi() {
  * 
 */
 bool MyWiFi::startAPMode(String hostname, String ip, String subnet, String gateway, String ssid, String pwd) {
-  this->hostname;
+  this->hostname = String(hostname);
   this->apIp = String(ip);
   this->apSubnet = String(subnet);
   this->apGateway = String(gateway);
