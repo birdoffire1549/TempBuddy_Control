@@ -26,9 +26,9 @@ This unit can be pointed at the IP of a TempBuddy Sensor device and read its tem
 | /admin | This is where the unit's settings are configured. Default Password: `P@ssw0rd123` |
 
 ## Important Software Details
-When the unit is first programmed it boots up as an AccessPoint that can be connected to using a computer or phone, by connecting to the presented network with a name of 'TempBuddy_Ctrl' using the WiFi password of `P@ssw0rd123`. Once connected to the unit's WiFi network you can also connect to the unit's admin page for configuring it using a web browser via the URL: http://192.168.1.1/admin. 
+When the unit is first programmed it boots up as an AccessPoint that can be connected to using a computer or phone, by connecting to the presented network with a name of `TempBuddy_Ctrl` using the WiFi password of `P@ssw0rd123`. Once connected to the unit's WiFi network you can also connect to the unit's admin page for configuring it using a web browser via the URL: http://192.168.1.1/admin. 
 
-This will take you to a page requesting a password. Initially the password is simply 'admin' but can be changed. This will display the current unit settings and allow the user to make desired configuration changes to the unit. When the Network settings are changed the unit will reboot and attempt to connect to the configured network. 
+This will take you to a page requesting a password. Initially the password is simply `admin` but can be changed. This will display the current unit settings and allow the user to make desired configuration changes to the unit. When the Network settings are changed the unit will reboot and attempt to connect to the configured network. 
 
 This firmware also allows for the unit to be equiped with a factory reset button. To perform a factory reset the factory reset button must supply a HIGH to its input while the unit is rebooted. Upon reboot if the factory reset button is HIGH the stored settings in flash will be replaced with the original factory default setttings. The factory reset button also serves another purpose during the normal operation of the unit. If pressed breifly the unit will flash out the last octet of its IP Address. It does this using the built-in LED. Each digit of the last octet is flashed out with a breif rapid flash between the blink count for each digit. 
 
