@@ -23,7 +23,7 @@ This unit can be pointed at the IP of a TempBuddy Sensor device and read its tem
 | Endpoint | Description |
 | :--- | :--- |
 | / | This is where the unit's information is deplayed as a web page |
-| /admin | This is where the unit's settings are configured. Default Password: `P@ssw0rd123` |
+| /admin | This is where the unit's settings are configured. Default Password: `admin` |
 
 ## Important Software Details
 When the unit is first programmed it boots up as an AccessPoint that can be connected to using a computer or phone, by connecting to the presented network with a name of `TempBuddy_Ctrl` using the WiFi password of `P@ssw0rd123`. Once connected to the unit's WiFi network you can also connect to the unit's admin page for configuring it using a web browser via the URL: http://192.168.1.1/admin. 
