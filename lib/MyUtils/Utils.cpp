@@ -8,9 +8,6 @@
 
 #include "Utils.h"
 
-
-
-
 /*
   Function handles flashing of the LED for signaling the given IP Address
   entirely or simply its last octet as determined by the passed boolean 

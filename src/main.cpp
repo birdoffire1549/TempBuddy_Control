@@ -94,13 +94,11 @@
 #define OUTLET_PIN 4
 #define RESTORE_PIN 14
 
-String apSsid = "TempBuddy_Ctrl"; // The SSID to use for AP Mode.
-
 // ************************************************************************************
 // Setup of Services
 // ************************************************************************************
 Settings settings = Settings();
-MyWiFi myWifi(apSsid);
+MyWiFi myWifi = MyWiFi();
 MyWeb myWeb(&settings);
 
 // ************************************************************************************
@@ -108,89 +106,98 @@ MyWeb myWeb(&settings);
 // ************************************************************************************
 bool firstLoop = true;
 
-/***************************** 
- * SETUP() - REQUIRED FUNCTION
- * ***************************
+// ************************************************************************************
+// Function Prototypes
+// ************************************************************************************
+
+void dumpFirmwareVersion(void);
+void doHandleReadTempBuddy(void);
+void doHandleDeviceOperations(void);
+void resetOrLoadSettings(void);
+void doStartNetwork(void);
+void checkIpDisplayRequest(void);
+
+/**
+ * #### SETUP() - REQUIRED FUNCTION ####
  * This function is the required setup() function and it is
  * where the initialization of the application happens. 
- */
+*/
 void setup() {
-  // Configure pin modes...
-  pinMode(OUTLET_PIN, OUTPUT);
-  pinMode(LED_PIN, OUTPUT);
-  pinMode(RESTORE_PIN, INPUT);
+    // Configure pin modes...
+    pinMode(OUTLET_PIN, OUTPUT);
+    pinMode(LED_PIN, OUTPUT);
+    pinMode(RESTORE_PIN, INPUT);
 
-  // Initialize output pins...
-  digitalWrite(LED_PIN, LOW);
-  digitalWrite(OUTLET_PIN, LOW);
+    // Initialize output pins...
+    digitalWrite(LED_PIN, LOW);
+    digitalWrite(OUTLET_PIN, LOW);
 
-  // Initialize Serial for logging...
-  Serial.begin(115200);
-  delay(15);
+    // Initialize Serial for logging...
+    Serial.begin(115200);
+    delay(15);
 
-  // Initialize the device...
-  dumpFirmwareVersion();
-  Serial.print(F("\nInitializing device... "));
+    // Initialize the device...
+    dumpFirmwareVersion();
+    Serial.print(F("\nInitializing device... "));
 
-  resetOrLoadSettings();
-  doStartNetwork();
-  delay(50);
+    resetOrLoadSettings();
+    doStartNetwork();
+    delay(50);
 
-  Serial.println(F("Device Initialization Complete."));
+    Serial.println(F("Device Initialization Complete."));
 }
 
-/****************************
- * LOOP() - REQUIRED FUNCTION
- * **************************
+/** 
+ * #### LOOP() - REQUIRED FUNCTION ####
+ * 
  * This is the required loop() function of the applicaiton.
  * Here is where all functionality happens or starts to happen.
- */
+*/
 void loop() {
-  if (firstLoop) { // It's the firt time through the loop...
-    firstLoop = false;
-    Serial.println("Device has begun normal operation.");
-  }
+    if (firstLoop) { // It's the firt time through the loop...
+        firstLoop = false;
+        Serial.println("Device has begun normal operation.");
+    }
 
-  checkIpDisplayRequest();
+    checkIpDisplayRequest();
 
-  // Handle incoming web requests...
-  myWeb.run();
+    // Handle incoming web requests...
+    myWeb.run();
 
-  doHandleReadTempBuddy();
-  doHandleDeviceOperations();
-
-  delay(15);
+    doHandleReadTempBuddy();
+    doHandleDeviceOperations();
+    delay(15);
 }
 
 /**
  * Detects and reacts to a reqest for factory reset
  * during the boot-up. Also loads settings from 
  * EEPROM if there are saved settings.
- */
+*/
 void resetOrLoadSettings() {
-  if (digitalRead(RESTORE_PIN) == HIGH) { // Restore button pressed on bootup...
-    Serial.println(F("\nPerforming Factory Reset..."));
-    settings.factoryDefault();
-    Serial.println(F("Factory reset complete."));
-  } else { // Normal load restore pin not pressed...
-    // Load from EEPROM if applicable...
-    settings.loadSettings();
-  }
+    if (digitalRead(RESTORE_PIN) == HIGH) { // Restore button pressed on bootup...
+        Serial.println(F("\nPerforming Factory Reset..."));
+        settings.factoryDefault();
+        Serial.println(F("Factory reset complete."));
+    } else { // Normal load restore pin not pressed...
+        // Load from EEPROM if applicable...
+        settings.loadSettings();
+    }
 }
 
-/*
-  This function is in charge of initially starting the 
-  network, in either AP Mode or External WiFi mode based
-  on if newtwork settings are factory default or not.
+/**
+ * This function is in charge of initially starting the 
+ * network, in either AP Mode or External WiFi mode based
+ * on if newtwork settings are factory default or not.
 */
-void doStartNetwork () {
-  if (!settings.isFactoryDefault()) {
-    myWifi.connectToNetwork(settings.getSsid().c_str(), settings.getPwd().c_str());
-  } else {
-    myWifi.startAPMode();
-  }
-  
-  myWeb.begin();
+void doStartNetwork() {
+    if (!settings.isFactoryDefault()) {
+        myWifi.connectToNetwork(settings.getHostname(), settings.getSsid(), settings.getPwd());
+    } else {
+        myWifi.startAPMode(settings.getHostname(), settings.getApNetIp(), settings.getApSubnet(), settings.getApGateway(), settings.getApSsid(), settings.getApPwd());
+    }
+    
+    myWeb.begin();
 }
 
 /**
@@ -199,117 +206,117 @@ void doStartNetwork () {
  * it is held down for. If less than 6 seconds then signal the last
  * octet of the IP Address. If longer than 6 seconds then signal the
  * entire IP Address.
- */
+*/
 void checkIpDisplayRequest() {
-  int counter = 0;
-  while (digitalRead(RESTORE_PIN) == HIGH) { // The restore button is being pressed...
-    counter++;
-    delay(1000);
-  }
+    int counter = 0;
+    while (digitalRead(RESTORE_PIN) == HIGH) { // The restore button is being pressed...
+        counter++;
+        delay(1000);
+    }
 
-  if (counter > 0) { // The restore button was pressed...
-    dumpFirmwareVersion();
-  }
-  
-  if (counter > 0 && counter < 6) { // Reset button was pressed for less than 6 seconds...
-    Serial.print("Device Address is: ");
-    Serial.println(myWifi.getIpAddress());
+    if (counter > 0) { // The restore button was pressed...
+        dumpFirmwareVersion();
+    }
+    
+    if (counter > 0 && counter < 6) { // Reset button was pressed for less than 6 seconds...
+        Serial.print("Device Address is: ");
+        Serial.println(myWifi.getIpAddress());
 
-    Utils::signalIpAddress(LED_PIN, myWifi.getIpAddress(), true);
-  } else if (counter >= 6) { // Reset button was pressed for 6 seconds or more...
-    Serial.print("Device Address is: ");
-    Serial.println(myWifi.getIpAddress());
+        Utils::signalIpAddress(LED_PIN, myWifi.getIpAddress(), true);
+    } else if (counter >= 6) { // Reset button was pressed for 6 seconds or more...
+        Serial.print("Device Address is: ");
+        Serial.println(myWifi.getIpAddress());
 
-    Utils::signalIpAddress(LED_PIN, myWifi.getIpAddress(), false);
-  }
+        Utils::signalIpAddress(LED_PIN, myWifi.getIpAddress(), false);
+    }
 }
 
-/*
-  This function handles the operations that are specific to the device.
-  Specifically speaking it handles turning on or off the controlled outlet 
-  based on user input if in Manual Mode or based on Temperature if in Auto Mode.
-  This is the only place in code that should be controlling the controlled outlet
-  of the device. Everywere else simply interacts with this function by maintaining
-  the key values in settings.
+/**
+ * This function handles the operations that are specific to the device.
+ * Specifically speaking it handles turning on or off the controlled outlet 
+ * based on user input if in Manual Mode or based on Temperature if in Auto Mode.
+ * This is the only place in code that should be controlling the controlled outlet
+ * of the device. Everywere else simply interacts with this function by maintaining
+ * the key values in settings.
 */
 void doHandleDeviceOperations() {
-  // Handle the Auto Control functionality...
-  if (settings.getIsAutoControl() && !settings.getTempBuddyIp().isEmpty()) { // Auto Control is active...
-    if (settings.getIsHeat()) { // In Heat control mode...
-      if (settings.getLastKnownTemp() > settings.getDesiredTemp()) { // It is too warm...
-        settings.setIsControlOn(false);
-      } else if (settings.getLastKnownTemp() < settings.getDesiredTemp() - settings.getTempPadding()) { // It's too cool...
-        settings.setIsControlOn(true);
-      }
-    } else { // In Cold control mode...
-      if (settings.getLastKnownTemp() < settings.getDesiredTemp()) { // It is too cold...
-        settings.setIsControlOn(false);
-      } else if (settings.getLastKnownTemp() > settings.getDesiredTemp() + settings.getTempPadding()) { // It's too warm...
-        settings.setIsControlOn(true);
-      }
+    // Handle the Auto Control functionality...
+    if (settings.getIsAutoControl() && !settings.getTempBuddyIp().isEmpty()) { // Auto Control is active...
+        if (settings.getIsHeat()) { // In Heat control mode...
+            if (settings.getLastKnownTemp() > settings.getDesiredTemp()) { // It is too warm...
+                settings.setIsControlOn(false);
+            } else if (settings.getLastKnownTemp() < settings.getDesiredTemp() - settings.getTempPadding()) { // It's too cool...
+                settings.setIsControlOn(true);
+            }
+        } else { // In Cold control mode...
+            if (settings.getLastKnownTemp() < settings.getDesiredTemp()) { // It is too cold...
+                settings.setIsControlOn(false);
+            } else if (settings.getLastKnownTemp() > settings.getDesiredTemp() + settings.getTempPadding()) { // It's too warm...
+                settings.setIsControlOn(true);
+            }
+        }
     }
-  }
 
-  // Handle the toggling of the controlled device on/off...
-  if (settings.getIsControlOn()) { // Controls should be ON...
-    if (digitalRead(OUTLET_PIN) == LOW) { // Control is NOT on but should be...
-      digitalWrite(OUTLET_PIN, HIGH);
+    // Handle the toggling of the controlled device on/off...
+    if (settings.getIsControlOn()) { // Controls should be ON...
+        if (digitalRead(OUTLET_PIN) == LOW) { // Control is NOT on but should be...
+           digitalWrite(OUTLET_PIN, HIGH);
+        }
+    } else { // Controls should be OFF...
+        if (digitalRead(OUTLET_PIN) == HIGH) { // Controls is ON but should NOT be...
+            digitalWrite(OUTLET_PIN, LOW);
+        }
     }
-  } else { // Controls should be OFF...
-    if (digitalRead(OUTLET_PIN) == HIGH) { // Controls is ON but should NOT be...
-      digitalWrite(OUTLET_PIN, LOW);
-    }
-  }
 }
 
 
 // Used by the doHandleReadTempBuddy function below...
 unsigned long lastTempBuddyRead = 0UL;
 
-/*
-  This function handles reaching out to the TempBuddy device for the current temperature
-  periodically. This functionality is throttled to only run once a minute as running it too 
-  often can degrade the device's ability to provide other functionality like answer clients'
-  web requests and signal IP Address as requested.
+/**
+ * This function handles reaching out to the TempBuddy device for the current temperature
+ * periodically. This functionality is throttled to only run once a minute as running it too 
+ * often can degrade the device's ability to provide other functionality like answer clients'
+ * web requests and signal IP Address as requested.
 */
 void doHandleReadTempBuddy() {
-  if (!settings.getTempBuddyIp().isEmpty() && (lastTempBuddyRead == 0UL || millis() - lastTempBuddyRead >= 60000)) { // Need to check TempBuddy...
-    lastTempBuddyRead = millis();
-    if (ParseUtils::validDotNotationIp(settings.getTempBuddyIp())) { // IP Address is valid...
-      if (myWifi.isConnected()) { // Connected to WiFi...
-        WiFiClient client;
-        HTTPClient http;
+    if (!settings.getTempBuddyIp().isEmpty() && (lastTempBuddyRead == 0UL || millis() - lastTempBuddyRead >= 60000)) { // Need to check TempBuddy...
+        lastTempBuddyRead = millis();
+        if (ParseUtils::validDotNotationIp(settings.getTempBuddyIp())) { // IP Address is valid...
+            if (myWifi.isConnected()) { // Connected to WiFi...
+                WiFiClient client;
+                HTTPClient http;
 
-        http.begin(client, String("http://") + settings.getTempBuddyIp() + "/");
+                http.begin(client, String("http://") + settings.getTempBuddyIp() + "/");
 
-        int respCode = http.GET();
-        if (respCode >= 200 && respCode <= 299) { // Good response...
-          Serial.printf("Got a '%d' response code from TempBuddy.\n", respCode);
-          String payload = http.getString();
-          if (!payload.isEmpty()) { // Something in payload...
-            String temp = ParseUtils::parseByKeyword(payload, "Temperature:", "&deg;");
-            temp.trim();
-            if (!temp.isEmpty()) { // String not empty...
-              settings.setLastKnownTemp(temp.toFloat());
-            }
+                int respCode = http.GET();
+                if (respCode >= 200 && respCode <= 299) { // Good response...
+                    Serial.printf("Got a '%d' response code from TempBuddy.\n", respCode);
+                    String payload = http.getString();
+                    if (!payload.isEmpty()) { // Something in payload...
+                        String temp = ParseUtils::parseByKeyword(payload, "Temperature:", "&deg;");
+                        temp.trim();
+                        if (!temp.isEmpty()) { // String not empty...
+                           settings.setLastKnownTemp(temp.toFloat());
+                        }
+                    }
+                }
+
+                http.end();
+              }
           }
-        }
-
-        http.end();
       }
-    }
-  }
 }
 
-/*
-  The purpose of this function is to simply dump the software
-  version to the serial console as desired. Additional information
-  can be added here if needed going forward.
+/**
+ * The purpose of this function is to simply dump the software
+ * version to the serial console as desired. Additional information
+ * can be added here if needed going forward.
 */
 void dumpFirmwareVersion() {
-  Serial.println("==================================");
-  Serial.print("Firmware Version: ");
-  Serial.println(FIRMWARE_VERSION);
-  Serial.println("==================================");
-  Serial.println("");
+    Serial.println("==================================");
+    Serial.print("Firmware Version: ");
+    Serial.println(FIRMWARE_VERSION);
+    Serial.println("==================================");
+    Serial.println("");
 }

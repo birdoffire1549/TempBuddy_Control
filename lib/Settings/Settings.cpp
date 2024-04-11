@@ -12,119 +12,106 @@
 
 #include "Settings.h"
 
-
-
-
-/*
-  CLASS CONSTRUCTOR: Allows for external instantiation of
-  the class into an object.
+/**
+ * #### CLASS CONSTRUCTOR ####
+ * Allows for external instantiation of
+ * the class into an object.
 */
 Settings::Settings() {
-  // Initially default the settings...
-  defaultSettings();
+    // Initially default the settings...
+    defaultSettings();
 }
 
-
-
-
-/*
-  Performs a factory default on the information maintained by this class
-  where that the data is first set to its factory default settings then
-  it is persisted to flash.
-
-  @return Returns true if successful saving defaulted settings otherwise
-  returns false as bool.
+/**
+ * Performs a factory default on the information maintained by this class
+ * where that the data is first set to its factory default settings then
+ * it is persisted to flash.
+ * 
+ * @return Returns true if successful saving defaulted settings otherwise
+ * returns false as bool.
 */
 bool Settings::factoryDefault() {
-  defaultSettings();
-  bool ok = saveSettings();
+    defaultSettings();
+    bool ok = saveSettings();
 
-  return ok;
+    return ok;
 }
 
-
-
-
-/*
-  Used to load the settings from flash memory.
-  After the settings are loaded from flash memory the sentinel value is 
-  checked to ensure the integrity of the loaded data. If the sentinel 
-  value is wrong then the contents of the memory are deemed invalid and
-  the memory is wiped and then a factory default is instead performed.
-
-  @return Returns true if data was loaded from memory and the sentinel 
-  value was valid.
+/**
+ * Used to load the settings from flash memory.
+ * After the settings are loaded from flash memory the sentinel value is 
+ * checked to ensure the integrity of the loaded data. If the sentinel 
+ * value is wrong then the contents of the memory are deemed invalid and
+ * the memory is wiped and then a factory default is instead performed.
+ * 
+ * @return Returns true if data was loaded from memory and the sentinel 
+ * value was valid.
 */
 bool Settings::loadSettings() {
-  bool ok = false;
-  // Setup EEPROM for loading and saving...
-  EEPROM.begin(sizeof(NonVolatileSettings));
+    bool ok = false;
+    // Setup EEPROM for loading and saving...
+    EEPROM.begin(sizeof(NonVolatileSettings));
 
-  // Persist default settings or load settings...
-  delay(15);
-  // Load from EEPROM if applicable...
-  if (EEPROM.percentUsed() >= 0) { // Something is stored from prior...
-    Serial.println(F("\nLoading settings from EEPROM..."));
-    EEPROM.get(0, nvSettings);
-    if (nvSettings.sentinel != SENTINEL_VALUE) {
-      EEPROM.wipe();
-      factoryDefault();
-      Serial.println("Stored settings footprint invalid, stored settings have been wiped and defaulted!");
-    } else {
-      Serial.print(F("Percent of ESP Flash currently used is: "));
-      Serial.print(EEPROM.percentUsed());
-      Serial.println(F("%"));
-      ok = true;
+    // Persist default settings or load settings...
+    delay(15);
+
+    /* Load from EEPROM if applicable... */
+    if (EEPROM.percentUsed() >= 0) { // Something is stored from prior...
+        Serial.println(F("\nLoading settings from EEPROM..."));
+        EEPROM.get(0, nvSettings);
+        if (nvSettings.sentinel != SENTINEL_VALUE) { // Memory is corrupt...
+            EEPROM.wipe();
+            factoryDefault();
+            Serial.println("Stored settings footprint invalid, stored settings have been wiped and defaulted!");
+        } else { // Memory seems ok...
+            Serial.print(F("Percent of ESP Flash currently used is: "));
+            Serial.print(EEPROM.percentUsed());
+            Serial.println(F("%"));
+            ok = true;
+        }
     }
-  }
-  
-  EEPROM.end();
+    
+    EEPROM.end();
 
-  return ok;
+    return ok;
 }
 
-
-
-
-/*
-  Used to save or persist the current value of the non-volatile settings
-  into flash memory.
-
-  @return Returns a true if save was successful otherwise a false as bool.
+/**
+ * Used to save or persist the current value of the non-volatile settings
+ * into flash memory.
+ *
+ * @return Returns a true if save was successful otherwise a false as bool.
 */
 bool Settings::saveSettings() {
-  EEPROM.begin(sizeof(NonVolatileSettings));
+    EEPROM.begin(sizeof(NonVolatileSettings));
 
-  EEPROM.wipe(); // usage seemd to grow without this.
-  EEPROM.put(0, nvSettings);
-  
-  bool ok = EEPROM.commit();
+    EEPROM.wipe(); // usage seemd to grow without this.
+    EEPROM.put(0, nvSettings);
+    
+    bool ok = EEPROM.commit();
 
-  EEPROM.end();
-  
-  return ok;
+    EEPROM.end();
+    
+    return ok;
 }
 
-
-
-
-/*
-  Used to determine if the current network settings are in default values.
-
-  @return Returns a true if default values otherwise a false as bool.
+/**
+ * Used to determine if the current network settings are in default values.
+ * 
+ * @return Returns a true if default values otherwise a false as bool. 
 */
 bool Settings::isFactoryDefault() {
-  // TODO: This might need to be adjusted since there have been significant functionality changes!!!
-  if (!String(nvSettings.ssid).equals("SET_ME") && !String(nvSettings.pwd).equals("SET_ME")) {
+    // TODO: This might need to be adjusted since there have been significant functionality changes!!!
+    if (
+        !String(nvSettings.ssid).equals("SET_ME") 
+        && !String(nvSettings.pwd).equals("SET_ME")
+    ) {
 
-    return false;
-  }
+        return false;
+    }
 
-  return true;
+    return true;
 }
-
-
-
 
 /*
 =================================================================
@@ -132,165 +119,218 @@ Getter and Setter Functions
 =================================================================
 */
 
+String Settings::getHostname() {
+  
+    return String(nvSettings.hostname);
+}
 
+void Settings::setHostname(const char *hostname) {
+    if (sizeof(hostname) <= sizeof(nvSettings.hostname)) {
+        strcpy(nvSettings.hostname, hostname);
+    }
+}
 
 
 String Settings::getSsid() {
   
-  return String(nvSettings.ssid);
+    return String(nvSettings.ssid);
 }
 
-
 void Settings::setSsid(const char *ssid) {
-  if (sizeof(ssid) <= sizeof(nvSettings.ssid)) {
-    strcpy(nvSettings.ssid, ssid);
-  }
+    if (sizeof(ssid) <= sizeof(nvSettings.ssid)) {
+        strcpy(nvSettings.ssid, ssid);
+    }
 }
 
 
 String Settings::getPwd() {
 
-  return String(nvSettings.pwd);
+    return String(nvSettings.pwd);
 }
 
-
 void Settings::setPwd(const char *pwd) {
-  if (sizeof(pwd) <= sizeof(nvSettings.pwd)) {
-    strcpy(nvSettings.pwd, pwd);
-  }
+    if (sizeof(pwd) <= sizeof(nvSettings.pwd)) {
+        strcpy(nvSettings.pwd, pwd);
+    }
 }
 
 
 String Settings::getAdminPwd() {
 
-  return String(nvSettings.adminPwd);
+    return String(nvSettings.adminPwd);
+}
+
+void Settings::setAdminPwd(const char *pwd) {
+    if (sizeof(pwd) <= sizeof(nvSettings.adminPwd)) {
+        strcpy(nvSettings.adminPwd, pwd);
+    }
 }
 
 
-void Settings::setAdminPwd(const char *pwd) {
-  if (sizeof(pwd) <= sizeof(nvSettings.adminPwd)) {
-    strcpy(nvSettings.adminPwd, pwd);
-  }
+String Settings::getApSsid() {
+
+    return String(nvSettings.apSsid);
+}
+
+void Settings::setApSsid(const char *ssid) {
+    if (sizeof(ssid) <= sizeof(nvSettings.apSsid)) {
+        strcpy(nvSettings.apSsid, ssid);
+    }
+}
+
+
+String Settings::getApPwd() {
+
+    return String(nvSettings.apPwd);
+}
+
+void Settings::setApPwd(const char *pwd) {
+    if (sizeof(pwd) <= sizeof(nvSettings.apPwd)) {
+        strcpy(nvSettings.apPwd, pwd);
+    }
+}
+
+
+String Settings::getApNetIp() {
+
+    return String(nvSettings.apNetIp);
+}
+
+void Settings::setApNetIp(const char *ip) {
+    if (sizeof(ip) <= sizeof(nvSettings.apNetIp)) {
+        strcpy(nvSettings.apNetIp, ip);
+    }
+}
+
+
+String Settings::getApSubnet() {
+
+    return String(nvSettings.apSubnet);
+}
+
+void Settings::setApSubnet(const char *netMask) {
+    if (sizeof(netMask) <= sizeof(nvSettings.apSubnet)) {
+        strcpy(nvSettings.apSubnet, netMask);
+    }
+}
+
+
+String Settings::getApGateway() {
+
+    return String(nvSettings.apGateway);
+}
+
+void Settings::setApGateway(const char *ip) {
+    if (sizeof(ip) <= sizeof(nvSettings.apGateway)) {
+        strcpy(nvSettings.apGateway, ip);
+    }
 }
 
 
 float Settings::getDesiredTemp() {
 
-  return nvSettings.desiredTemp;
+    return nvSettings.desiredTemp;
 }
 
-
 void Settings::setDesiredTemp(float temp) {
-  nvSettings.desiredTemp = temp;
+    nvSettings.desiredTemp = temp;
 }
 
 
 String Settings::getHeading() {
 
-  return String(nvSettings.heading);
+    return String(nvSettings.heading);
 }
 
-
 void Settings::setHeading(const char *heading) {
-  if (sizeof(heading) <= sizeof(nvSettings.heading)) {
-    strcpy(nvSettings.heading, heading);
-  }
+    if (sizeof(heading) <= sizeof(nvSettings.heading)) {
+        strcpy(nvSettings.heading, heading);
+    }
 }
 
 
 bool Settings::getIsHeat() {
 
-  return nvSettings.isHeat;
+    return nvSettings.isHeat;
 }
 
-
 void Settings::setIsHeat(bool isHeat) {
-  nvSettings.isHeat = isHeat;
+    nvSettings.isHeat = isHeat;
 }
 
 
 String Settings::getTempBuddyIp() {
 
-  return String(nvSettings.tempBuddyIp);
+    return String(nvSettings.tempBuddyIp);
 }
 
-
 void Settings::setTempBuddyIp(const char *ip) {
-  if (sizeof(ip) <= sizeof(nvSettings.tempBuddyIp)) {
-    strcpy(nvSettings.tempBuddyIp, ip);
-  }
+    if (sizeof(ip) <= sizeof(nvSettings.tempBuddyIp)) {
+        strcpy(nvSettings.tempBuddyIp, ip);
+    }
 }
 
 
 float Settings::getTempPadding() {
 
-  return nvSettings.tempPadding;
+    return nvSettings.tempPadding;
 }
 
-
 void Settings::setTempPadding(float padding) {
-  nvSettings.tempPadding = padding;
+    nvSettings.tempPadding = padding;
 }
 
 
 unsigned long Settings::getTimeout() {
 
-  return nvSettings.timeout;
+    return nvSettings.timeout;
 }
 
-
 void Settings::setTimeout(unsigned long timeout) {
-  nvSettings.timeout = timeout;
+    nvSettings.timeout = timeout;
 }
 
 
 String Settings::getTitle() {
 
-  return String(nvSettings.title);
+    return String(nvSettings.title);
 }
 
-
 void Settings::setTitle(const char *title) {
-  if (sizeof(title) <= sizeof(nvSettings.title)) {
-    strcpy(nvSettings.title, title);
-  }
+    if (sizeof(title) <= sizeof(nvSettings.title)) {
+        strcpy(nvSettings.title, title);
+    }
 }
 
 
 bool Settings::getIsControlOn() {
 
-  return vSettings.isControlOn;
+    return vSettings.isControlOn;
 }
 
-
 void Settings::setIsControlOn(bool isOn) {
-  vSettings.isControlOn = isOn;
+    vSettings.isControlOn = isOn;
 }
 
 
 bool Settings::getIsAutoControl() {
 
-  return nvSettings.isAutoControl;
+    return nvSettings.isAutoControl;
 }
 
-
 void Settings::setIsAutoControl(bool autoOn) {
-  nvSettings.isAutoControl = autoOn;
+    nvSettings.isAutoControl = autoOn;
 }
 
 
 float Settings::getLastKnownTemp() {
 
-  return vSettings.lastKnownTemp;
+    return vSettings.lastKnownTemp;
 }
-
 
 void Settings::setLastKnownTemp(float temp) {
-  vSettings.lastKnownTemp = temp;
+    vSettings.lastKnownTemp = temp;
 }
-
-
-
 
 /*
 =================================================================
@@ -298,26 +338,30 @@ Private Functions
 =================================================================
 */
 
-
-
-
-/*
-  PRIVATE: This function is used to set or reset all settings to 
-  factory default values but does not persist the value 
-  changes to flash.
+/**
+ * #### PRIVATE ####
+ * This function is used to set or reset all settings to 
+ * factory default values but does not persist the value 
+ * changes to flash.
 */
 void Settings::defaultSettings() {
-  // Default the settings..
-  strcpy(nvSettings.ssid, "SET_ME");
-  strcpy(nvSettings.pwd, "SET_ME");
-  strcpy(nvSettings.adminPwd, "admin");
-  strcpy(nvSettings.title, "Temp Buddy Control - IOT");
-  strcpy(nvSettings.heading, "Device Info");
-  nvSettings.timeout = 5000;
-  nvSettings.isAutoControl = false;
-  nvSettings.isHeat = true;
-  nvSettings.sentinel = SENTINEL_VALUE;
+    // Default the settings..
+    strcpy(nvSettings.hostname, "TempBuddy-Ctrl");
+    strcpy(nvSettings.ssid, "SET_ME");
+    strcpy(nvSettings.pwd, "SET_ME");
+    strcpy(nvSettings.adminPwd, "admin");
+    strcpy(nvSettings.apSsid, "TempBuddy_Ctrl");
+    strcpy(nvSettings.apPwd, "P@ssw0rd123");
+    strcpy(nvSettings.apNetIp, "192.168.1.1");
+    strcpy(nvSettings.apSubnet, "255.255.255.0");
+    strcpy(nvSettings.apGateway, "0.0.0.0");
+    strcpy(nvSettings.title, "Temp Buddy Control - IOT");
+    strcpy(nvSettings.heading, "Device Info");
+    nvSettings.timeout = 5000;
+    nvSettings.isAutoControl = false;
+    nvSettings.isHeat = true;
+    nvSettings.sentinel = SENTINEL_VALUE;
 
-  vSettings.isControlOn = false;
-  vSettings.lastKnownTemp = 0.0;
+    vSettings.isControlOn = false;
+    vSettings.lastKnownTemp = 0.0;
 }

@@ -9,113 +9,104 @@
 
 #include "ParseUtils.h"
 
-
-
-
-/*
-  Allows for information to be parsed out of a String between a Keyword and a Terminating
-  String. If the Terminator doesn't exist then this function will parse to the end of the line.
-  If character marking the end of the line then the terminator will be the end of the String.
-  This is particularly useful when parsing data from key/value pairs.
-  
-  Example:
-  If string was equal to "This is a sentence and it may contain a lot of data", and one was to
-  set the keyword to "a " and the terminator to " and", then you would get as a result the word
-  "sentence", as a String. If the prior is true but the terminator was "$" the result would be, 
-  "sentence and it may contain a lot of data", since the "$" terminator would not be found.
-
-  @param string - The string from which to parse data as String.
-  @param keyword - The keyword to start parsing data just after as String.
-  @param terminator - The terminator to parse up until as String.
-
-  @return Returns the parsed data as String
+/**
+ * Allows for information to be parsed out of a String between a Keyword and a Terminating
+ * String. If the Terminator doesn't exist then this function will parse to the end of the line.
+ * If character marking the end of the line then the terminator will be the end of the String.
+ * This is particularly useful when parsing data from key/value pairs.
+ * 
+ * Example:
+ * If string was equal to "This is a sentence and it may contain a lot of data", and one was to
+ * set the keyword to "a " and the terminator to " and", then you would get as a result the word
+ * "sentence", as a String. If the prior is true but the terminator was "$" the result would be, 
+ * "sentence and it may contain a lot of data", since the "$" terminator would not be found.
+ * 
+ * @param string - The string from which to parse data as String.
+ * @param keyword - The keyword to start parsing data just after as String.
+ * @param terminator - The terminator to parse up until as String.
+ * 
+ * @return Returns the parsed data as String
 */
 String ParseUtils::parseByKeyword(String string, String keyword, String terminator) {
-  int keyIndex = string.indexOf(keyword);
-  if (keyIndex == -1) { // Keyword wasn't found...
-    
-    return "";
-  }
-  int endIndex = string.indexOf(terminator, keyIndex + keyword.length());
+    int keyIndex = string.indexOf(keyword);
+    if (keyIndex == -1) { // Keyword wasn't found...
+        
+        return "";
+    }
+    int endIndex = string.indexOf(terminator, keyIndex + keyword.length());
 
-  // Look for Terminator if not found parse to end of line...
-  if (endIndex == -1) { // Terminator not found...
-    endIndex = string.indexOf("\n", keyIndex);
-  }
+    // Look for Terminator if not found parse to end of line...
+    if (endIndex == -1) { // Terminator not found...
+        endIndex = string.indexOf("\n", keyIndex);
+    }
 
-  // If line terminator not found then to end of string...
-  if (endIndex == -1) { // New-line not found...
+    // If line terminator not found then to end of string...
+    if (endIndex == -1) { // New-line not found...
 
-    return string.substring(keyIndex + keyword.length());
-  } 
+        return string.substring(keyIndex + keyword.length());
+    } 
 
-  return string.substring(keyIndex + keyword.length(), endIndex);
+    return string.substring(keyIndex + keyword.length(), endIndex);
 }
 
-
-
-
-/*
-  Allows for information to be parsed out of a string between a Keyword and a Terminating
-  string. If the Terminator doesn't exist then this function will parse to the end of the line.
-  If character marking the end of the line then the terminator will be the end of the string.
-  This is particularly useful when parsing data from key/value pairs.
-  
-  Example:
-  If str was equal to "This is a sentence and it may contain a lot of data", and one was to
-  set the keyword to "a " and the terminator to " and", then you would get as a result the word
-  "sentence", as a string. If the prior is true but the terminator was "$" the result would be, 
-  "sentence and it may contain a lot of data", since the "$" terminator would not be found.
-
-  @param str - The string from which to parse data as std::string.
-  @param keyword - The keyword to start parsing data just after as std::string.
-  @param terminator - The terminator to parse up until as std::string.
-
-  @return Returns the parsed data as std::string
+/**
+ * Allows for information to be parsed out of a string between a Keyword and a Terminating
+ * string. If the Terminator doesn't exist then this function will parse to the end of the line.
+ * If character marking the end of the line then the terminator will be the end of the string.
+ * This is particularly useful when parsing data from key/value pairs.
+ * 
+ * Example:
+ * If str was equal to "This is a sentence and it may contain a lot of data", and one was to
+ * set the keyword to "a " and the terminator to " and", then you would get as a result the word
+ * "sentence", as a string. If the prior is true but the terminator was "$" the result would be, 
+ * "sentence and it may contain a lot of data", since the "$" terminator would not be found.
+ * 
+ * @param str - The string from which to parse data as std::string.
+ * @param keyword - The keyword to start parsing data just after as std::string.
+ * @param terminator - The terminator to parse up until as std::string.
+ * 
+ * @return Returns the parsed data as std::string
 */
 std::string ParseUtils::parseByKeyword(std::string str, std::string keyword, std::string terminator) {
-  int keyIndex = str.find(keyword);
-  if (keyIndex == -1) { // Keyword wasn't found...
-    
-    return "";
-  }
-  int endIndex = str.find(terminator, keyIndex + keyword.length());
+    int keyIndex = str.find(keyword);
+    if (keyIndex == -1) { // Keyword wasn't found...
+        
+        return "";
+    }
+    int endIndex = str.find(terminator, keyIndex + keyword.length());
 
-  // Look for Terminator if not found parse to end of line...
-  if (endIndex == -1) { // Terminator not found...
-    endIndex = str.find("\n", keyIndex);
-  }
+    // Look for Terminator if not found parse to end of line...
+    if (endIndex == -1) { // Terminator not found...
+        endIndex = str.find("\n", keyIndex);
+    }
 
-  // If line terminator not found then to end of string...
-  if (endIndex == -1) { // New-line not found...
+    // If line terminator not found then to end of string...
+    if (endIndex == -1) { // New-line not found...
 
-    return substring(str, keyIndex + keyword.length());
-  } 
+        return substring(str, keyIndex + keyword.length());
+    } 
 
-  return substring(str, keyIndex + keyword.length(), endIndex);
+    return substring(str, keyIndex + keyword.length(), endIndex);
 }
 
-
-
-
-/*
-  Counts the number of occurrences of a specific character within a 
-  given String.
-
-  @param string - The String from which the occurances of the given character will be counted.
-  @param toCnt - The character of which to count the occurrances of.
-
-  @return Returns the number of occurrences counted as int.
+/**
+ * Counts the number of occurrences of a specific character within a 
+ * given String.
+ * 
+ * @param string - The String from which the occurances of the given character will be counted.
+ * @param toCnt - The character of which to count the occurrances of.
+ * 
+ * @return Returns the number of occurrences counted as int.
 */
 int ParseUtils::occurrences(String string, char toCnt) {
-  int count = 0;
-  for (int i = 0; i < string.length(); i++) { // Iterate string looking for chars...
-    if (string.charAt(i) == toCnt) { // Char to count was found...
-      count ++;
+    int count = 0;
+    for (int i = 0; i < string.length(); i++) { // Iterate string looking for chars...
+        if (string.charAt(i) == toCnt) { // Char to count was found...
+        count ++;
+        }
     }
-  }
 
-  return count;
+    return count;
 }
 
 
