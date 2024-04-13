@@ -44,6 +44,7 @@
                 bool           isHeat                 ;
                 bool           isAutoControl          ;
                 unsigned long  timeout                ;
+                bool           isFactory              ;
                 unsigned long  sentinel               ;
             } nvSettings;
 
@@ -107,12 +108,14 @@
              * @return Returns a true if default values otherwise a false as bool.
             */
             bool isFactoryDefault();
+            bool isNetworkSet();
 
             /*
             =========================================================
                                 Getters and Setters 
             =========================================================
             */
+            void           settingsChanged   ()                       ;
 
             void           setHostname       (const char *hostname)   ;
             String         getHostname       ()                       ;
@@ -155,4 +158,5 @@
             void           setLastKnownTemp  (float temp)             ;
             float          getLastKnownTemp  ()                       ;
     };
+    
 #endif

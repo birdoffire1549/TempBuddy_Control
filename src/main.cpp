@@ -73,11 +73,14 @@
 
 #include <Arduino.h>
 #include <ESP_EEPROM.h>
+#include "ExampleSecrets.h"
+#include "Secrets.h"
+#include <ESP8266WebServerSecure.h>
+#include "HtmlContent.h"
 #include <ESP8266WiFi.h>
 
 #include "Utils.h"
 #include "MyWiFi.h"
-#include "MyWeb.h"
 #include "Settings.h"
 #include "ParseUtils.h"
 
@@ -99,7 +102,8 @@
 // ************************************************************************************
 Settings settings = Settings();
 MyWiFi myWifi = MyWiFi();
-MyWeb myWeb(&settings);
+BearSSL::ESP8266WebServerSecure webServer(/*Port*/443);
+BearSSL::ServerSessions serverCache(5);
 
 // ************************************************************************************
 // Global worker variables
@@ -116,6 +120,12 @@ void doHandleDeviceOperations(void);
 void resetOrLoadSettings(void);
 void doStartNetwork(void);
 void checkIpDisplayRequest(void);
+String htmlPageTemplate(String title, String heading, String content, String redirectUrl = "", int delaySeconds = 3);
+void fileUploadHandler(void);
+void notFoundHandler(void);
+void endpointHandlerAdmin(void);
+void endpointHandlerRoot(void);
+void initWebServer(void);
 
 /**
  * #### SETUP() - REQUIRED FUNCTION ####
@@ -142,6 +152,7 @@ void setup() {
 
     resetOrLoadSettings();
     doStartNetwork();
+    initWebServer();
     delay(50);
 
     Serial.println(F("Device Initialization Complete."));
@@ -162,7 +173,7 @@ void loop() {
     checkIpDisplayRequest();
 
     // Handle incoming web requests...
-    myWeb.run();
+    webServer.handleClient();
 
     doHandleReadTempBuddy();
     doHandleDeviceOperations();
@@ -191,13 +202,11 @@ void resetOrLoadSettings() {
  * on if newtwork settings are factory default or not.
 */
 void doStartNetwork() {
-    if (!settings.isFactoryDefault()) {
+    if (settings.isNetworkSet()) {
         myWifi.connectToNetwork(settings.getHostname(), settings.getSsid(), settings.getPwd());
     } else {
         myWifi.startAPMode(settings.getHostname(), settings.getApNetIp(), settings.getApSubnet(), settings.getApGateway(), settings.getApSsid(), settings.getApPwd());
     }
-    
-    myWeb.begin();
 }
 
 /**
@@ -214,8 +223,9 @@ void checkIpDisplayRequest() {
         delay(1000);
     }
 
-    if (counter > 0) { // The restore button was pressed...
+    if (counter > 0) { // The reset button was pressed...
         dumpFirmwareVersion();
+        // TODO: !!! In AP Mode, dump SSID as well and maybe memory usage?
     }
     
     if (counter > 0 && counter < 6) { // Reset button was pressed for less than 6 seconds...
@@ -319,4 +329,286 @@ void dumpFirmwareVersion() {
     Serial.println(FIRMWARE_VERSION);
     Serial.println("==================================");
     Serial.println("");
+}
+
+/**
+ * #### INITIALIZE ####
+ * This is an initialization function for the WebServer.
+*/
+void initWebServer() {
+  #ifndef Secrets_h
+    webServer.getServer().setRSACert(new BearSSL::X509List(SAMPLE_SERVER_CERT), new BearSSL::PrivateKey(SAMPLE_SERVER_KEY));
+  #else
+    webServer.getServer().setRSACert(new BearSSL::X509List(server_cert), new BearSSL::PrivateKey(server_key));
+  #endif
+  webServer.getServer().setCache(&serverCache);
+
+  /* Setup Endpoint Handlers */
+  webServer.on("/", endpointHandlerRoot);
+  webServer.on("/admin", endpointHandlerAdmin);
+  webServer.onNotFound(notFoundHandler);
+  webServer.onFileUpload(fileUploadHandler);
+
+  webServer.begin();
+}
+
+/**
+ * #### ENDPOINT HANDLER ("/" AKA Root) ####
+ * This is the Root endpoint handler when the client sends a 
+ * request to the Root endpoint.
+*/
+void endpointHandlerRoot() {
+  String content = "";
+  Serial.println("Client requested endpoint: '/'; Generating response content...");
+
+  // Handle incoming parameters...
+  if (webServer.arg("source").equalsIgnoreCase("manualcontrols") && !settings.getIsAutoControl()) { // <----------------------- AutoControl is OFF...
+    String autoControl = webServer.arg("autocontrol");
+    if (!autoControl.isEmpty()) { // Incoming auto control update from Manual Controls...
+      settings.setIsAutoControl(autoControl.equalsIgnoreCase("enabled"));
+      settings.saveSettings();
+    } 
+    if (!settings.getIsAutoControl()) {
+      if (webServer.arg("control").equalsIgnoreCase("off")) { // Parameter found to turn control off...
+        settings.setIsControlOn(false);
+      } else if (webServer.arg("control").equalsIgnoreCase("on")) { // Parameter found to turn control on...
+        settings.setIsControlOn(true);
+      }
+    }
+  } else if (webServer.arg("source").equalsIgnoreCase("autocontrols") && settings.getIsAutoControl()) { // <------------------- AutoControl is ON...
+    bool updateSuccessful = false;
+    bool wasUpdate = false;
+    String desiredTemp = webServer.arg("desiredtemp");
+    String tempPadding = webServer.arg("temppadding");
+    String autoControl = webServer.arg("autocontrol");
+    if (!autoControl.isEmpty()) { // Handle updating of the enable status of AutoControl...
+      settings.setIsAutoControl(autoControl.equalsIgnoreCase("enabled"));
+      wasUpdate = true;
+    }
+    if (!desiredTemp.isEmpty() && !tempPadding.isEmpty()) {
+      settings.setDesiredTemp(desiredTemp.toFloat());
+      settings.setTempPadding(tempPadding.toFloat());
+      wasUpdate = true;
+    }
+
+    if (wasUpdate && settings.saveSettings()) {
+      updateSuccessful = true;
+    }
+
+    if (wasUpdate) {
+      if (updateSuccessful) {
+        content = content + String(UPDATE_SUCCESSFUL_MSG);
+      } else {
+        content = content + String(UPDATE_FAILED_MSG);
+      }
+    }
+  }
+
+  // Build and send Information Page...
+  String tBudId = settings.getTempBuddyIp();
+  bool tempBuddyEnabled = !tBudId.isEmpty() && !tBudId.equals("0.0.0.0");
+
+  String temp = INFO_PAGE;
+  temp.replace("${tempbuddyip}", (!tempBuddyEnabled ? "Not Set" : String(settings.getTempBuddyIp())));
+  temp.replace("${lastknowntemp}", (!tempBuddyEnabled ? "N/A" : String(settings.getLastKnownTemp())));
+  temp.replace("${controltype}", (settings.getIsHeat() ? "Heat" : "Cool"));
+  temp.replace("${autocontrolenabled}", (settings.getIsAutoControl() ? "True" : "False"));
+  temp.replace("${deviceonstatus}", (settings.getIsControlOn() ? "ON" : "OFF"));
+  content.concat(temp);
+
+  // Only show Manual Controls if AutoControl is OFF...
+  bool isAutoCtrl = settings.getIsAutoControl();
+  String result = "";
+  if (!isAutoCtrl) { // AutoControl is OFF...
+    content = content + String(MANUAL_CONTROLS_SECTION);
+  } else { // AutoControl is ON...
+    String temp = String(AUTO_CONTROLS_SECTION);
+    temp.replace("${desiredtemp}", String(settings.getDesiredTemp()));
+    temp.replace("${temppadding}", String(settings.getTempPadding()));
+    content = content + temp;    
+  }
+
+  Serial.println("Sending html to client for endpoint: '/'");
+  webServer.send(200, "text/html", htmlPageTemplate(String(settings.getTitle()), String(settings.getHeading()), content));
+}
+
+/** 
+ * #### ENDPOINT HANDLER ("/admin") ####
+ * 
+ * This function shows the admin page for the device. The admin page is also
+ * known as the settings page. It is a password protected page that allows 
+ * for the software's non-volatile settings to be configured.
+ * 
+*/
+void endpointHandlerAdmin() {
+  /* Ensure user authenticated */
+  if (!webServer.authenticate("admin", settings.getAdminPwd().c_str())) { // User not authenticated...
+    
+    return webServer.requestAuthentication(DIGEST_AUTH, "AdminRealm", "Authentication failed!");
+  }
+
+  // Initial content is the login page unless authenticated
+  String content = String(ADMIN_SETTINGS_PAGE);
+  
+  bool requiresReboot = false;
+  bool autoToHome = false;
+  
+  // Insert data into page contents...
+  content.replace("${ssid}", settings.getSsid());
+  content.replace("${pwd}", settings.getPwd());
+  content.replace("${title}", settings.getTitle());
+  content.replace("${heading}", settings.getHeading());
+  content.replace("${budyip}", settings.getTempBuddyIp());
+  content.replace("${autocontrolenabledchecked}", settings.getIsAutoControl() ? "checked" : "");
+  content.replace("${autocontroldisabledchecked}", settings.getIsAutoControl() ? "" : "checked");
+  content.replace("${controllingheatchecked}", settings.getIsHeat() ? "checked" : "");
+  content.replace("${controllingcoolchecked}", settings.getIsHeat() ? "" : "checked");
+  content.replace("${desiredtemp}", String(settings.getDesiredTemp()));
+  content.replace("${temppadding}", String(settings.getTempPadding()));
+  content.replace("${timeout}", String(settings.getTimeout()));
+  content.replace("${adminpwd}", settings.getAdminPwd());
+  
+  if (webServer.arg("source").equalsIgnoreCase("settings")) { // Refered from settings page so do update...
+    // Aquire the incoming new settings...
+    String ssid = webServer.arg("ssid");
+    String pwd = webServer.arg("pwd");
+    String title = webServer.arg("title");
+    String heading = webServer.arg("heading");
+    String budyIp = webServer.arg("budyip");
+    String isAutoCtrl = webServer.arg("autocontrol");
+    String isHeat = webServer.arg("controltype");
+    String desiredTemp = webServer.arg("desiredtemp");
+    String tempPadding = webServer.arg("temppadding");
+    String adminPwd = webServer.arg("adminpwd");
+
+    // Verify the validity of the incoming new settings...
+    if (!ssid.isEmpty() && !ssid.equals(settings.getSsid())) {
+      requiresReboot = true;
+      settings.setSsid(ssid.c_str());
+    }
+    if (!pwd.isEmpty() && !pwd.equals(settings.getPwd())) {
+      requiresReboot = true;
+      settings.setPwd(pwd.c_str());
+    }
+    if (!title.isEmpty()) {
+      settings.setTitle(title.c_str());
+    }
+    if (!heading.isEmpty()) {
+      settings.setHeading(heading.c_str());
+    }
+    if (isAutoCtrl.equals("enabled")) {
+      settings.setIsAutoControl(true);
+    } else if (isAutoCtrl.equals("disabled")) {
+      settings.setIsAutoControl(false);
+    }
+    if (isHeat.equals("heat")) {
+      settings.setIsHeat(true);
+    } else if (isHeat.equals("cool")) {
+      settings.setIsHeat(false);
+    }
+    float fTemp = 0;
+    if (!desiredTemp.isEmpty() && (fTemp = desiredTemp.toFloat()) >= -100.0 && fTemp <= 100.0) {
+      settings.setDesiredTemp(fTemp);
+    }
+    if (budyIp.isEmpty() || ParseUtils::validDotNotationIp(budyIp)) {
+      if (!budyIp.isEmpty() && settings.getTempBuddyIp().isEmpty()) {
+        // FYI: This prevents inital action before first read
+        settings.setLastKnownTemp(settings.getDesiredTemp());
+      }
+      settings.setTempBuddyIp(budyIp.c_str());
+    }
+    if (!tempPadding.isEmpty() && (fTemp = tempPadding.toFloat()) >= 0.0 && fTemp <= 100.0) {
+      settings.setTempPadding(fTemp);
+    }
+    if (!adminPwd.isEmpty() && adminPwd.length() <= 12) {
+      settings.setAdminPwd(adminPwd.c_str());
+    }
+
+    if (settings.saveSettings()) { // Successful...
+      if (requiresReboot) { // Needs to reboot...
+        content = "<div id=\"successful\">Settings update Successful!</div>"
+          "<h4>Device will reboot now...</h4>";
+        
+        // TODO: REBOOT REQUIRED BUT SPECIFY NEW? IP ADDRESS!!!
+      } else { // No reboot needed; Send to home page...
+        
+        return webServer.send(
+          200, 
+          "text/html", 
+          htmlPageTemplate(
+            settings.getTitle(), 
+            "Device Settings", 
+            "<div id=\"success\">Settings update Successful!</div><a href='/'><h4>Home</h4></a>", 
+            "/", 
+            5
+          )
+        );
+      }
+    } else { // Error...
+
+      return webServer.send(500, "text/html", htmlPageTemplate("500 - Server Error", "Server Error!", "<div id=\"failed\">Error Saving Settings!!!</div>", "/", 5));
+    }
+  }
+  
+  // Send the page...
+  if (requiresReboot) { // Reboot required...
+    webServer.send(200, "text/html", htmlPageTemplate(settings.getTitle(), "Device Settings", content));
+    delay(1000);
+    ESP.restart();
+  } else { // No reboot required...
+    if (autoToHome) {
+      webServer.send(200, "text/html", htmlPageTemplate(settings.getTitle(), "Device Settings", content, "/", 5));
+    } else {
+      webServer.send(200, "text/html", htmlPageTemplate(settings.getTitle(), "Device Settings", content));
+    }
+  }
+}
+
+/**
+ * #### HANDLER - NOT FOUND ####
+ * This is a function which is used to handle web requests when the requested resource is not valid.
+ * 
+*/
+void notFoundHandler() {
+  webServer.send(404, "text/html", htmlPageTemplate("404 Not Found", "OOPS! You broke it!!!", "Just kidding...<br>But seriously what you were looking for doesn't exist."));
+}
+
+void fileUploadHandler() {
+  webServer.send(400, "text/html", htmlPageTemplate("400 Bad Request", "Uhhh, Wuuuuut!?", "Um, I don't want your nasty files, go peddle that junk elsewhere!"));
+}
+
+/** 
+ * #### HTML PAGE TEMPLATE ####
+ *
+ * This function is used to Generate the HTML for a web page where the 
+ * title, heading and content is provided to the function as parameters.
+ * 
+ * @param title - The page's title as String.
+ * @param heading - The heading that appears on the info page as String.
+ * @param content - The main content of the web page as String.
+ * @param redirectUrl - OPTIONAL PARAM, used to specify a page that this page should
+ * redirect to after a specified amount of time.
+ * @param delaySeconds - OPTIONAL PARAM, the number of seconds to delay before sending
+ * the client to the redirectUrl, as int.
+*/
+String htmlPageTemplate(String title, String heading, String content, String redirectUrl, int delaySeconds) {
+  String result = HTML_PAGE_TEMPLATE;
+
+  // Prepare the contents of the HTML page...
+  result.replace("${title}", title);
+  result.replace("${heading}", heading);
+  result.replace("${content}", content);
+  if (redirectUrl.isEmpty()) { // No redirect URL was specified...
+    result.replace("${metainsert}", "");
+  } else { // A redirect was specified...
+    String temp = "<meta http-equiv=\"refresh\" content=\"";
+    temp.concat(String(delaySeconds));
+    temp.concat("\"; URL=\"");
+    temp.concat(redirectUrl);
+    temp.concat("\" />");
+
+    result.replace("${metainsert}",  temp);
+  }
+
+  return result;
 }

@@ -2,6 +2,7 @@
     #define HtmlContent_h
 
     #include <WString.h>
+    #include <pgmspace.h>
 
     /**
      * This is the HTML content that is common to ALL Pages which can be
@@ -10,7 +11,7 @@
      * The content of this template is placed into the template by replacing the
      * ${content} place-holder.
     */
-      const String HTML_PAGE_TEMPLATE = ""
+      const char PROGMEM HTML_PAGE_TEMPLATE[] = {""
         "<!DOCTYPE HTML> "
         "<html lang=\"en\"> "
             "<head> "
@@ -33,7 +34,7 @@
                 "<h1>${heading}</h1> "
                 "<div id=\"info\">${content}</div> "
             "</div> "
-        "</html>"
+        "</html>"}
     ;
 
     /**
@@ -42,7 +43,7 @@
      * added just prior to sending to client, as well as for adding in the
      * appropriate control section to the page.
     */
-    const String INFO_PAGE = ""
+    const char PROGMEM INFO_PAGE[] = {""
         "<p>"
             "<table>"
                 "<tr><td>TempBuddy IP:</td><td>${tempbuddyip}</td></tr>"
@@ -51,7 +52,7 @@
                 "<tr><td>Auto Ctrl Enabled:</td><td>${autocontrolenabled}</td></tr>"
                 "<tr><td>Controlled Device is:</td><td>${deviceonstatus}</td></tr>"
             "</table>"
-        "</p>"
+        "</p>"}
     ;
 
     /**
@@ -59,7 +60,7 @@
      * This HTML has replaceable place-holders for dynamic informaton to be
      * added just prior to sending to client.
     */
-    const String ADMIN_SETTINGS_PAGE = ""  
+    const char PROGMEM ADMIN_SETTINGS_PAGE[] = {""  
         "<form name=\"settings\" method=\"post\" id=\"settings\" action=\"admin\"> "
             "<input type=\"hidden\" id=\"source\" name=\"source\" value=\"settings\">"
             "<h2>WiFi</h2> "
@@ -102,7 +103,7 @@
             "</table>"
             "<br> "
             "<button type=\"submit\">Submit</button> <a href='/'><h4>Home</h4></a>"
-        "</form>"
+        "</form>"}
     ;
 
     /*
@@ -110,7 +111,7 @@
      * These controls are only shown on the Info Page when 
      * Manual Control is enabled.
     */
-    const String MANUAL_CONTROLS_SECTION = ""
+    const char PROGMEM MANUAL_CONTROLS_SECTION[] = {""
         "<br><hr><br>"
         "<form name=\"manualControls\" method=\"post\" id=\"manualControls\" action=\"/\"> "
             "<input type=\"hidden\" id=\"source\" name=\"source\" value=\"manualcontrols\">"
@@ -132,7 +133,7 @@
             "<br>"
             "Manual Controls: " 
             "<button type=\"submit\" formaction=\"/?control=on\">On</button>    <button type=\"submit\" formaction=\"/?control=off\">Off</button>"
-        "</form>"
+        "</form>"}
     ;
 
     /**
@@ -140,7 +141,7 @@
      * These controls are only shown on the Info Page when 
      * Auto Control is enabled.
     */
-    const String AUTO_CONTROLS_SECTION = ""
+    const char PROGMEM AUTO_CONTROLS_SECTION[] = {""
         "<br><hr><br>"
         "<h2>Auto Controls</h2>" 
         "<form name=\"autoControls\" method=\"post\" id=\"autoControls\" action=\"/\"> "
@@ -166,7 +167,7 @@
             "</table>"
             "<br>"
             "<button type=\"submit\">Update</button>"
-        "</form>"
+        "</form>"}
     ;
 
     /**
@@ -174,8 +175,8 @@
      * message should saving the modified settings to 
      * memory succeed.
     */
-    const String UPDATE_SUCCESSFUL_MSG = ""
-        "<div id=\"successful\">* Update was Successful!</div>"
+    const char PROGMEM UPDATE_SUCCESSFUL_MSG[] = {""
+        "<div id=\"successful\">* Update was Successful!</div>"}
     ;
 
     /**
@@ -183,7 +184,7 @@
      * message should saving the modified settings to 
      * memory fail.
     */
-    const String UPDATE_FAILED_MSG = ""
-        "<div id=\"failed\">* Update Failed!!!</div>"
+    const char PROGMEM UPDATE_FAILED_MSG[] = {""
+        "<div id=\"failed\">* Update Failed!!!</div>"}
     ;
 #endif

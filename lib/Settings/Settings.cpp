@@ -101,12 +101,13 @@ bool Settings::saveSettings() {
  * @return Returns a true if default values otherwise a false as bool. 
 */
 bool Settings::isFactoryDefault() {
-    // TODO: This might need to be adjusted since there have been significant functionality changes!!!
-    if (
-        !String(nvSettings.ssid).equals("SET_ME") 
-        && !String(nvSettings.pwd).equals("SET_ME")
-    ) {
+    
+    return nvSettings.isFactory;
+}
 
+bool Settings::isNetworkSet() {
+    if (getSsid().equals("SET_ME") || getPwd().equals("SET_ME")) {
+        
         return false;
     }
 
@@ -127,6 +128,7 @@ String Settings::getHostname() {
 void Settings::setHostname(const char *hostname) {
     if (sizeof(hostname) <= sizeof(nvSettings.hostname)) {
         strcpy(nvSettings.hostname, hostname);
+        settingsChanged();
     }
 }
 
@@ -139,6 +141,7 @@ String Settings::getSsid() {
 void Settings::setSsid(const char *ssid) {
     if (sizeof(ssid) <= sizeof(nvSettings.ssid)) {
         strcpy(nvSettings.ssid, ssid);
+        settingsChanged();
     }
 }
 
@@ -151,6 +154,7 @@ String Settings::getPwd() {
 void Settings::setPwd(const char *pwd) {
     if (sizeof(pwd) <= sizeof(nvSettings.pwd)) {
         strcpy(nvSettings.pwd, pwd);
+        settingsChanged();
     }
 }
 
@@ -163,6 +167,7 @@ String Settings::getAdminPwd() {
 void Settings::setAdminPwd(const char *pwd) {
     if (sizeof(pwd) <= sizeof(nvSettings.adminPwd)) {
         strcpy(nvSettings.adminPwd, pwd);
+        settingsChanged();
     }
 }
 
@@ -175,6 +180,7 @@ String Settings::getApSsid() {
 void Settings::setApSsid(const char *ssid) {
     if (sizeof(ssid) <= sizeof(nvSettings.apSsid)) {
         strcpy(nvSettings.apSsid, ssid);
+        settingsChanged();
     }
 }
 
@@ -187,6 +193,7 @@ String Settings::getApPwd() {
 void Settings::setApPwd(const char *pwd) {
     if (sizeof(pwd) <= sizeof(nvSettings.apPwd)) {
         strcpy(nvSettings.apPwd, pwd);
+        settingsChanged();
     }
 }
 
@@ -199,6 +206,7 @@ String Settings::getApNetIp() {
 void Settings::setApNetIp(const char *ip) {
     if (sizeof(ip) <= sizeof(nvSettings.apNetIp)) {
         strcpy(nvSettings.apNetIp, ip);
+        settingsChanged();
     }
 }
 
@@ -211,6 +219,7 @@ String Settings::getApSubnet() {
 void Settings::setApSubnet(const char *netMask) {
     if (sizeof(netMask) <= sizeof(nvSettings.apSubnet)) {
         strcpy(nvSettings.apSubnet, netMask);
+        settingsChanged();
     }
 }
 
@@ -223,6 +232,7 @@ String Settings::getApGateway() {
 void Settings::setApGateway(const char *ip) {
     if (sizeof(ip) <= sizeof(nvSettings.apGateway)) {
         strcpy(nvSettings.apGateway, ip);
+        settingsChanged();
     }
 }
 
@@ -234,6 +244,7 @@ float Settings::getDesiredTemp() {
 
 void Settings::setDesiredTemp(float temp) {
     nvSettings.desiredTemp = temp;
+    settingsChanged();
 }
 
 
@@ -245,6 +256,7 @@ String Settings::getHeading() {
 void Settings::setHeading(const char *heading) {
     if (sizeof(heading) <= sizeof(nvSettings.heading)) {
         strcpy(nvSettings.heading, heading);
+        settingsChanged();
     }
 }
 
@@ -256,6 +268,7 @@ bool Settings::getIsHeat() {
 
 void Settings::setIsHeat(bool isHeat) {
     nvSettings.isHeat = isHeat;
+    settingsChanged();
 }
 
 
@@ -267,6 +280,7 @@ String Settings::getTempBuddyIp() {
 void Settings::setTempBuddyIp(const char *ip) {
     if (sizeof(ip) <= sizeof(nvSettings.tempBuddyIp)) {
         strcpy(nvSettings.tempBuddyIp, ip);
+        settingsChanged();
     }
 }
 
@@ -278,6 +292,7 @@ float Settings::getTempPadding() {
 
 void Settings::setTempPadding(float padding) {
     nvSettings.tempPadding = padding;
+    settingsChanged();
 }
 
 
@@ -288,6 +303,7 @@ unsigned long Settings::getTimeout() {
 
 void Settings::setTimeout(unsigned long timeout) {
     nvSettings.timeout = timeout;
+    settingsChanged();
 }
 
 
@@ -299,6 +315,7 @@ String Settings::getTitle() {
 void Settings::setTitle(const char *title) {
     if (sizeof(title) <= sizeof(nvSettings.title)) {
         strcpy(nvSettings.title, title);
+        settingsChanged();
     }
 }
 
@@ -310,6 +327,7 @@ bool Settings::getIsControlOn() {
 
 void Settings::setIsControlOn(bool isOn) {
     vSettings.isControlOn = isOn;
+    settingsChanged();
 }
 
 
@@ -320,6 +338,7 @@ bool Settings::getIsAutoControl() {
 
 void Settings::setIsAutoControl(bool autoOn) {
     nvSettings.isAutoControl = autoOn;
+    // FYI: No call to settingsChanged() due to not stored in flash.
 }
 
 
@@ -330,6 +349,7 @@ float Settings::getLastKnownTemp() {
 
 void Settings::setLastKnownTemp(float temp) {
     vSettings.lastKnownTemp = temp;
+    // FYI: No call to settingsChanged() due to not stored in flash.
 }
 
 /*
@@ -357,11 +377,19 @@ void Settings::defaultSettings() {
     strcpy(nvSettings.apGateway, "0.0.0.0");
     strcpy(nvSettings.title, "Temp Buddy Control - IOT");
     strcpy(nvSettings.heading, "Device Info");
+    strcpy(nvSettings.tempBuddyIp, "0.0.0.0");
+    nvSettings.desiredTemp = 72.0;
+    nvSettings.tempPadding = .5;
     nvSettings.timeout = 5000;
     nvSettings.isAutoControl = false;
     nvSettings.isHeat = true;
+    nvSettings.isFactory = true;
     nvSettings.sentinel = SENTINEL_VALUE;
 
     vSettings.isControlOn = false;
     vSettings.lastKnownTemp = 0.0;
+}
+
+void Settings::settingsChanged() {
+    nvSettings.isFactory = false;
 }
