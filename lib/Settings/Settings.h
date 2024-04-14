@@ -13,11 +13,12 @@
 #ifndef Settings_h
     #define Settings_h
 
-    #include <string.h> // NEEDED by ESP_EEPROM and MUST be before WString
+    #include <string.h> // NEEDED by ESP_EEPROM and MUST appear before WString
     #include <ESP_EEPROM.h>
     #include <WString.h>
     #include <core_esp8266_features.h>
     #include <HardwareSerial.h>
+    #include <Hash.h>
 
     class Settings {
         const unsigned long SENTINEL_VALUE = 0xFD2F; // Helps ensure memory location contains expected contents.
@@ -58,6 +59,7 @@
             } vSettings;
             
             void defaultSettings();
+            
 
         public:
             Settings();

@@ -430,10 +430,14 @@ void endpointHandlerRoot() {
 */
 void endpointHandlerAdmin() {
   /* Ensure user authenticated */
+  Serial.println("Client requested access to '/admin'...");
   if (!webServer.authenticate("admin", settings.getAdminPwd().c_str())) { // User not authenticated...
-    
+    Serial.println("Client failed Authentication!");
+
     return webServer.requestAuthentication(DIGEST_AUTH, "AdminRealm", "Authentication failed!");
   }
+
+  Serial.println("Client has been Authenticated; Generating web content...");
 
   // Initial content is the login page unless authenticated
   String content = String(ADMIN_SETTINGS_PAGE);
@@ -569,11 +573,14 @@ void endpointHandlerAdmin() {
       if (requiresReboot) { // Needs to reboot...
         content = F("<div id=\"successful\">Settings update Successful!</div><h4>Device will reboot now...</h4>");
         
+        Serial.println("Sending '/admin' content to client, then rebooting to apply changes.");
+
         webServer.send(200, "text/html", htmlPageTemplate(settings.getTitle(), "Device Settings", content));
         delay(1000);
         ESP.restart();
       } else { // No reboot needed; Send to home page...
-        
+        Serial.println("Sending '/admin' content to client.");
+
         return webServer.send(
           200, 
           "text/html", 
@@ -587,10 +594,12 @@ void endpointHandlerAdmin() {
         );
       }
     } else { // Error...
+      Serial.println("Sending '/admin' content to client; An error prevented saving settings!");
 
       return webServer.send(500, "text/html", htmlPageTemplate(F("500 - Server Error"), F("Server Error!"), F("<div id=\"failed\">Error Saving Settings!!!</div>"), "/", 5));
     }
   }
+  Serial.println("Seinding '/admin' content to client.");
 
   webServer.send(200, "text/html", htmlPageTemplate(settings.getTitle(), F("Device Settings"), content));
 }
@@ -601,10 +610,16 @@ void endpointHandlerAdmin() {
  * 
 */
 void notFoundHandler() {
+  Serial.printf("Client requested '%'; 404 - Not Found send to client!\n", webServer.uri().c_str());
   webServer.send(404, "text/html", htmlPageTemplate(F("404 Not Found"), F("OOPS! You broke it!!!"), F("Just kidding...<br>But seriously what you were looking for doesn't exist.")));
 }
 
+/**
+ * #### HANDLER - File Upload ####
+ * This function handles file upload requests.
+*/
 void fileUploadHandler() {
+  Serial.println("Client attempted to upload a file and I was like Wuuuut!?");
   webServer.send(400, "text/html", htmlPageTemplate(F("400 Bad Request"), F("Uhhh, Wuuuuut!?"), F("Um, I don't want your nasty files, go peddle that junk elsewhere!")));
 }
 
