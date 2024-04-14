@@ -1,9 +1,8 @@
 # TempBuddy Control
 ## Overview
-```
-Document Last updated for:
-[Firmware Version: 5.1.1]
-```
+> [!Document Last updated for]
+> Firmware Version: 5.1.1
+
 This software was written to be utilized by an ESP8266 Device in a specialized hardware configuration known as a TempBuddy Control Unit. It is also intended that this unit be operated in conjunction with a TempBuddy Sensor device, however the Sensor is not required as this unit still provides functionality and usefullness without it.
 
 The TempBuddy Sensor is device has the ability to sense and report Temperature and Humidity data via a web interface. 
