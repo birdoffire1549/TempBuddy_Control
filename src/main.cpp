@@ -80,7 +80,7 @@
 // Define Statements
 // ************************************************************************************
 
-#define FIRMWARE_VERSION "5.1.1"
+#define FIRMWARE_VERSION "5.1.2"
 
 #define LED_PIN 5
 #define OUTLET_PIN 4

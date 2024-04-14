@@ -27,19 +27,19 @@
             // Structure used for storing of settings related data and persisted into flash
             // *****************************************************************************
             struct NonVolatileSettings {
-                char           hostname         [63]  ; // 63 chars is max size
-                char           ssid             [32]  ; // 32 chars is max size
-                char           pwd              [63]  ; // 63 chars is max size
-                char           adminUser        [12]  ;
-                char           adminPwd         [12]  ;
-                char           apSsid           [32]  ;
-                char           apPwd            [63]  ;
-                char           apNetIp          [15]  ;
-                char           apSubnet         [15]  ;
-                char           apGateway        [15]  ;
-                char           title            [50]  ;
-                char           heading          [50]  ;
-                char           tempBuddyIp      [15]  ;
+                char           hostname         [64]  ; // 63 chars is max size + 1 null
+                char           ssid             [33]  ; // 32 chars is max size + 1 null
+                char           pwd              [64]  ; // 63 chars is max size + 1 null
+                char           adminUser        [13]  ;
+                char           adminPwd         [13]  ;
+                char           apSsid           [33]  ;
+                char           apPwd            [64]  ;
+                char           apNetIp          [16]  ;
+                char           apSubnet         [16]  ;
+                char           apGateway        [16]  ;
+                char           title            [51]  ;
+                char           heading          [51]  ;
+                char           tempBuddyIp      [16]  ;
                 float          desiredTemp            ;
                 float          tempPadding            ;
                 bool           isHeat                 ;
