@@ -7,49 +7,40 @@
   Overview:
   This software was written to be utilized by an ESP8266 Device.
   The device using this software is refered to as a TempBuddy Control Unit.
-  It was designed to work with another project that is refered to as a TempBuddy, that particular
-  device has the ability to sense and report Temperature and Humidity data via a web interface. 
-  This device can be pointed at the IP of a TempBuddy device and read its temp and then react
-  to the temperature by controlling an outlet which can have a Heating or Cooling device attached
-  to it. If no TempBuddy is connected to this device then the user has the ability to manually 
-  control the attached outlet through the hosted webpage. This device also hosts a webpage that can
-  be accessed using the device's IP Address and Port 80. Also this device can be configured by 
-  accessing its admin page either via an existing WiFi or the device's TempBuddy_Ctrl wifi network 
+  It was designed to work with another project that is refered to as a TempBuddy Sensor, that 
+  particular device has the ability to sense and report Temperature and Humidity data via a web 
+  interface. This device can be pointed at the IP of a TempBuddy device and read its temp and then 
+  react to the temperature by controlling an outlet which can have a Heating or Cooling device 
+  attached to it. If no TempBuddy is connected to this device then the user has the ability to 
+  manually control the attached outlet through the hosted webpage. This device also hosts a webpage 
+  that can be accessed using the device's IP Address and Port 80. Also this device can be configured 
+  by accessing its admin page either via an existing WiFi or the device's TempBuddy_Ctrl wifi network 
   when it is in AP Mode.
-
-  SECURITY RELATED PLEASE NOTE: 
-  Communication with this Device is NOT encrypted. This means that when configuring the settings of the
-  device using the Admin page, the data is transmitted to and from the client in clear text on the network you
-  and the device are connected to. The potential for compromise is highest when doing initial settings with the
-  device in AP mode as there is no password used for the TempBuddy_Ctrl network. Be cautious as this could result in
-  the leaking of target network's SSID and Password when initially setup, also if changing the device's admin
-  password don't use one that you use for other sensitive things as it will be sent to the device in clear text.
-  [TODO: Add SSL usage]
 
   Hosted Endpoints:
   /        - This is where the device's information is deplayed as a web page
-  /admin   - This is where the device's settings are configured. Default Password: admin
+  /admin   - This is where the device's settings are configured. Default User: admin, Default Password: admin
 
   More Detailed:
   When device is first programmed it boots up as an AccessPoint that can be connected to using a computer, 
   by connecting to the presented network with a name of 'TempBuddy_Ctrl' and no password. Once connected to the
   device's WiFi network you can connect to it for configuration using a web browser via the URL:
-  http://192.168.4.1/admin. This will take you to a page requesting a password. Initially the password is
-  simply 'admin' but can be changed. This will display the current device settings and allow the user to make desired
-  configuration changes to the device. When the Network settings are changed the device will reboot and 
-  attempt to connect to the configured network. This code also allows for the device to be equiped with a 
-  factory reset button. To perform a factory reset the factory reset button must supply a HIGH to its input
-  while the device is rebooted. Upon reboot if the factory reset button is HIGH the stored settings in flash will
-  be replaced with the original factory default setttings. The factory reset button also serves another purpose 
-  during the normal operation of the device. If pressed breifly the device will flash out the last octet of its 
-  IP Address. It does this using the built-in LED. Each digit of the last octet is flashed out with a breif 
-  rapid flash between the blink count for each digit. Once all digits have been flashed out the LED will do
-  a long rapid flash. Also, one may use the factory reset button to obtain the full IP Address of the device by 
-  keeping the ractory reset button pressed during normal device operation for more than 6 seconds. When flashing
-  out the IP address the device starts with the first digit of the first octet and flashes slowly that number of 
-  times, then it performs a rapid flash to indicate it is on to the next digit. Once all digits in an octet have
-  been flashed out the device performs a second after digit rapid flash to indicate it has moved onto a new 
-  octet. 
+  http://192.168.1.1/admin. This will pop up an authentication dialogue requesting a user and password. 
+  Initially the user is 'admin' and password is 'admin' but can be changed. This will display the current 
+  device settings and allow the user to make desired configuration changes to the device. When the Network 
+  settings are changed the device will reboot and attempt to connect to the configured network. This code 
+  also allows for the device to be equiped with a factory reset button. To perform a factory reset the factory 
+  reset button must supply a HIGH to its input while the device is rebooted. Upon reboot if the factory reset 
+  button is HIGH the stored settings in flash will be replaced with the original factory default setttings. 
+  The factory reset button also serves another purpose during the normal operation of the device. If pressed 
+  breifly the device will flash out the last octet of its IP Address. It does this using the built-in LED. Each 
+  digit of the last octet is flashed out with a breif rapid flash between the blink count for each digit. Once 
+  all digits have been flashed out the LED will do a long rapid flash. Also, one may use the factory reset button 
+  to obtain the full IP Address of the device by keeping the ractory reset button pressed during normal device 
+  operation for more than 6 seconds. When flashing out the IP address the device starts with the first digit of 
+  the first octet and flashes slowly that number of times, then it performs a rapid flash to indicate it is on 
+  to the next digit. Once all digits in an octet have been flashed out the device performs a second after digit 
+  rapid flash to indicate it has moved onto a new octet. 
   
   I will demonstrate how this works below by representting a single flash of the LED as a dash '-'. I will represent
   the post digit rapid flash with three dots '...', and finally I will represent the end of sequence long flash
@@ -77,21 +68,19 @@
 #include "Secrets.h"
 #include <ESP8266WebServerSecure.h>
 #include "HtmlContent.h"
-#include <ESP8266WiFi.h>
 
 #include "Utils.h"
 #include "MyWiFi.h"
 #include "Settings.h"
 #include "ParseUtils.h"
 
-#include <WiFiClient.h>
 #include <ESP8266HTTPClient.h>
 
 // ************************************************************************************
 // Define Statements
 // ************************************************************************************
 
-#define FIRMWARE_VERSION "5.0.1"
+#define FIRMWARE_VERSION "5.1.1"
 
 #define LED_PIN 5
 #define OUTLET_PIN 4
@@ -167,7 +156,7 @@ void setup() {
 void loop() {
     if (firstLoop) { // It's the firt time through the loop...
         firstLoop = false;
-        Serial.println("Device has begun normal operation.");
+        Serial.println(F("Device has begun normal operation."));
     }
 
     checkIpDisplayRequest();
@@ -225,16 +214,15 @@ void checkIpDisplayRequest() {
 
     if (counter > 0) { // The reset button was pressed...
         dumpFirmwareVersion();
-        // TODO: !!! In AP Mode, dump SSID as well and maybe memory usage?
     }
     
     if (counter > 0 && counter < 6) { // Reset button was pressed for less than 6 seconds...
-        Serial.print("Device Address is: ");
+        Serial.print(F("Device Address is: "));
         Serial.println(myWifi.getIpAddress());
 
         Utils::signalIpAddress(LED_PIN, myWifi.getIpAddress(), true);
     } else if (counter >= 6) { // Reset button was pressed for 6 seconds or more...
-        Serial.print("Device Address is: ");
+        Serial.print(F("Device Address is: "));
         Serial.println(myWifi.getIpAddress());
 
         Utils::signalIpAddress(LED_PIN, myWifi.getIpAddress(), false);
@@ -324,10 +312,10 @@ void doHandleReadTempBuddy() {
  * can be added here if needed going forward.
 */
 void dumpFirmwareVersion() {
-    Serial.println("==================================");
-    Serial.print("Firmware Version: ");
+    Serial.println(F("=================================="));
+    Serial.print(F("Firmware Version: "));
     Serial.println(FIRMWARE_VERSION);
-    Serial.println("==================================");
+    Serial.println(F("=================================="));
     Serial.println("");
 }
 
@@ -359,7 +347,7 @@ void initWebServer() {
 */
 void endpointHandlerRoot() {
   String content = "";
-  Serial.println("Client requested endpoint: '/'; Generating response content...");
+  Serial.println(F("Client requested endpoint: '/'; Generating response content..."));
 
   // Handle incoming parameters...
   if (webServer.arg("source").equalsIgnoreCase("manualcontrols") && !settings.getIsAutoControl()) { // <----------------------- AutoControl is OFF...
@@ -428,7 +416,7 @@ void endpointHandlerRoot() {
     content = content + temp;    
   }
 
-  Serial.println("Sending html to client for endpoint: '/'");
+  Serial.println(F("Sending html to client for endpoint: '/'"));
   webServer.send(200, "text/html", htmlPageTemplate(String(settings.getTitle()), String(settings.getHeading()), content));
 }
 
@@ -451,11 +439,16 @@ void endpointHandlerAdmin() {
   String content = String(ADMIN_SETTINGS_PAGE);
   
   bool requiresReboot = false;
-  bool autoToHome = false;
   
   // Insert data into page contents...
+  content.replace("${hostname}", settings.getHostname());
   content.replace("${ssid}", settings.getSsid());
   content.replace("${pwd}", settings.getPwd());
+  content.replace("${apssid}", settings.getApSsid());
+  content.replace("${appwd}", settings.getApPwd());
+  content.replace("${apnetip}", settings.getApNetIp());
+  content.replace("${apsubnet}", settings.getApSubnet());
+  content.replace("${apgateway}", settings.getApGateway());
   content.replace("${title}", settings.getTitle());
   content.replace("${heading}", settings.getHeading());
   content.replace("${budyip}", settings.getTempBuddyIp());
@@ -466,12 +459,19 @@ void endpointHandlerAdmin() {
   content.replace("${desiredtemp}", String(settings.getDesiredTemp()));
   content.replace("${temppadding}", String(settings.getTempPadding()));
   content.replace("${timeout}", String(settings.getTimeout()));
+  content.replace("${adminuser}", settings.getAdminUser());
   content.replace("${adminpwd}", settings.getAdminPwd());
   
   if (webServer.arg("source").equalsIgnoreCase("settings")) { // Refered from settings page so do update...
     // Aquire the incoming new settings...
     String ssid = webServer.arg("ssid");
     String pwd = webServer.arg("pwd");
+    String hostname = webServer.arg("hostname");
+    String apSsid = webServer.arg("apssid");
+    String apPwd = webServer.arg("appwd");
+    String apNetIp = webServer.arg("apnetip");
+    String apSubnet = webServer.arg("apsubnet");
+    String apGateway = webServer.arg("apgateway");
     String title = webServer.arg("title");
     String heading = webServer.arg("heading");
     String budyIp = webServer.arg("budyip");
@@ -479,57 +479,99 @@ void endpointHandlerAdmin() {
     String isHeat = webServer.arg("controltype");
     String desiredTemp = webServer.arg("desiredtemp");
     String tempPadding = webServer.arg("temppadding");
+    String adminUser = webServer.arg("adminuser");
     String adminPwd = webServer.arg("adminpwd");
 
-    // Verify the validity of the incoming new settings...
-    if (!ssid.isEmpty() && !ssid.equals(settings.getSsid())) {
+    /* ************************ *
+     * Verify Settings Validity *
+     * ************************ */
+    if (!ssid.isEmpty() && !ssid.equals(settings.getSsid())) { // <------------ ssid
       requiresReboot = true;
       settings.setSsid(ssid.c_str());
     }
-    if (!pwd.isEmpty() && !pwd.equals(settings.getPwd())) {
+    if (!pwd.isEmpty() && !pwd.equals(settings.getPwd())) { // <--------------- pwd
       requiresReboot = true;
       settings.setPwd(pwd.c_str());
     }
-    if (!title.isEmpty()) {
+    if (!hostname.isEmpty()) { // <-------------------------------------------- hostname
+      requiresReboot = true;
+      settings.setHostname(ParseUtils::trunc(hostname, 63).c_str());
+    }
+    if (!apSsid.isEmpty()) { // <---------------------------------------------- apSsid
+      requiresReboot = true;
+      settings.setApSsid(ParseUtils::trunc(apSsid, 32).c_str());
+    }
+    if (!apPwd.isEmpty()) { // <----------------------------------------------- apPwd
+      requiresReboot = true;
+      settings.setApPwd(apPwd.c_str());
+    }
+    if (!apNetIp.isEmpty()) { // <--------------------------------------------- apNetIp
+      requiresReboot = true;
+      settings.setApNetIp(apNetIp.c_str());
+    }
+    if (!apSubnet.isEmpty()) { // <-------------------------------------------- apSubnet
+      requiresReboot = true;
+      settings.setApSubnet(apSubnet.c_str());
+    }
+    if (!apGateway.isEmpty()) { // <------------------------------------------- apGateway
+      requiresReboot = true;
+      settings.setApGateway(apGateway.c_str());
+    }
+    if (!title.isEmpty()) { // <----------------------------------------------- title
       settings.setTitle(title.c_str());
     }
-    if (!heading.isEmpty()) {
+    if (!heading.isEmpty()) { // <--------------------------------------------- heading
       settings.setHeading(heading.c_str());
     }
-    if (isAutoCtrl.equals("enabled")) {
+    if (isAutoCtrl.equals("enabled")) { // <----------------------------------- isAutoCtrl
       settings.setIsAutoControl(true);
     } else if (isAutoCtrl.equals("disabled")) {
       settings.setIsAutoControl(false);
     }
-    if (isHeat.equals("heat")) {
+    if (isHeat.equals("heat")) { // <------------------------------------------ isHeat
       settings.setIsHeat(true);
     } else if (isHeat.equals("cool")) {
       settings.setIsHeat(false);
     }
     float fTemp = 0;
-    if (!desiredTemp.isEmpty() && (fTemp = desiredTemp.toFloat()) >= -100.0 && fTemp <= 100.0) {
+    if (
+      !desiredTemp.isEmpty() 
+      && (fTemp = desiredTemp.toFloat()) >= -100.0 
+      && fTemp <= 100.0
+    ) { // <------------------------------------------------------------------ desiredTemp
       settings.setDesiredTemp(fTemp);
     }
-    if (budyIp.isEmpty() || ParseUtils::validDotNotationIp(budyIp)) {
+    if (budyIp.isEmpty() || ParseUtils::validDotNotationIp(budyIp)) { // <---- budyIp
       if (!budyIp.isEmpty() && settings.getTempBuddyIp().isEmpty()) {
         // FYI: This prevents inital action before first read
         settings.setLastKnownTemp(settings.getDesiredTemp());
       }
       settings.setTempBuddyIp(budyIp.c_str());
     }
-    if (!tempPadding.isEmpty() && (fTemp = tempPadding.toFloat()) >= 0.0 && fTemp <= 100.0) {
+    if (
+      !tempPadding.isEmpty() 
+      && (fTemp = tempPadding.toFloat()) >= 0.0 
+      && fTemp <= 100.0
+    ) { // <------------------------------------------------------------------ tempPadding
       settings.setTempPadding(fTemp);
     }
-    if (!adminPwd.isEmpty() && adminPwd.length() <= 12) {
+    if (!adminUser.isEmpty() && adminUser.length() <= 12) { // <-------------- adminUser
+      settings.setAdminUser(adminUser.c_str());
+    }
+    if (!adminPwd.isEmpty() && adminPwd.length() <= 12) { // <---------------- adminPwd
       settings.setAdminPwd(adminPwd.c_str());
     }
 
+    /* ********************** *
+     * Save Settings To NVRAM *
+     * ********************** */
     if (settings.saveSettings()) { // Successful...
       if (requiresReboot) { // Needs to reboot...
-        content = "<div id=\"successful\">Settings update Successful!</div>"
-          "<h4>Device will reboot now...</h4>";
+        content = F("<div id=\"successful\">Settings update Successful!</div><h4>Device will reboot now...</h4>");
         
-        // TODO: REBOOT REQUIRED BUT SPECIFY NEW? IP ADDRESS!!!
+        webServer.send(200, "text/html", htmlPageTemplate(settings.getTitle(), "Device Settings", content));
+        delay(1000);
+        ESP.restart();
       } else { // No reboot needed; Send to home page...
         
         return webServer.send(
@@ -537,8 +579,8 @@ void endpointHandlerAdmin() {
           "text/html", 
           htmlPageTemplate(
             settings.getTitle(), 
-            "Device Settings", 
-            "<div id=\"success\">Settings update Successful!</div><a href='/'><h4>Home</h4></a>", 
+            F("Device Settings"), 
+            F("<div id=\"success\">Settings update Successful!</div><a href='/'><h4>Home</h4></a>"), 
             "/", 
             5
           )
@@ -546,22 +588,11 @@ void endpointHandlerAdmin() {
       }
     } else { // Error...
 
-      return webServer.send(500, "text/html", htmlPageTemplate("500 - Server Error", "Server Error!", "<div id=\"failed\">Error Saving Settings!!!</div>", "/", 5));
+      return webServer.send(500, "text/html", htmlPageTemplate(F("500 - Server Error"), F("Server Error!"), F("<div id=\"failed\">Error Saving Settings!!!</div>"), "/", 5));
     }
   }
-  
-  // Send the page...
-  if (requiresReboot) { // Reboot required...
-    webServer.send(200, "text/html", htmlPageTemplate(settings.getTitle(), "Device Settings", content));
-    delay(1000);
-    ESP.restart();
-  } else { // No reboot required...
-    if (autoToHome) {
-      webServer.send(200, "text/html", htmlPageTemplate(settings.getTitle(), "Device Settings", content, "/", 5));
-    } else {
-      webServer.send(200, "text/html", htmlPageTemplate(settings.getTitle(), "Device Settings", content));
-    }
-  }
+
+  webServer.send(200, "text/html", htmlPageTemplate(settings.getTitle(), F("Device Settings"), content));
 }
 
 /**
@@ -570,11 +601,11 @@ void endpointHandlerAdmin() {
  * 
 */
 void notFoundHandler() {
-  webServer.send(404, "text/html", htmlPageTemplate("404 Not Found", "OOPS! You broke it!!!", "Just kidding...<br>But seriously what you were looking for doesn't exist."));
+  webServer.send(404, "text/html", htmlPageTemplate(F("404 Not Found"), F("OOPS! You broke it!!!"), F("Just kidding...<br>But seriously what you were looking for doesn't exist.")));
 }
 
 void fileUploadHandler() {
-  webServer.send(400, "text/html", htmlPageTemplate("400 Bad Request", "Uhhh, Wuuuuut!?", "Um, I don't want your nasty files, go peddle that junk elsewhere!"));
+  webServer.send(400, "text/html", htmlPageTemplate(F("400 Bad Request"), F("Uhhh, Wuuuuut!?"), F("Um, I don't want your nasty files, go peddle that junk elsewhere!")));
 }
 
 /** 

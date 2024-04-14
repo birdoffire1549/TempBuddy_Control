@@ -159,6 +159,20 @@ void Settings::setPwd(const char *pwd) {
 }
 
 
+String Settings::getAdminUser() {
+
+    return String(nvSettings.adminUser);
+}
+
+void Settings::setAdminUser(const char *user) {
+
+    if (sizeof(user) <= sizeof(nvSettings.adminUser)) {
+        strcpy(nvSettings.adminUser, user);
+        settingsChanged();
+    }
+}
+
+
 String Settings::getAdminPwd() {
 
     return String(nvSettings.adminPwd);
@@ -369,6 +383,7 @@ void Settings::defaultSettings() {
     strcpy(nvSettings.hostname, "TempBuddy-Ctrl");
     strcpy(nvSettings.ssid, "SET_ME");
     strcpy(nvSettings.pwd, "SET_ME");
+    strcpy(nvSettings.adminUser, "admin");
     strcpy(nvSettings.adminPwd, "admin");
     strcpy(nvSettings.apSsid, "TempBuddy_Ctrl");
     strcpy(nvSettings.apPwd, "P@ssw0rd123");

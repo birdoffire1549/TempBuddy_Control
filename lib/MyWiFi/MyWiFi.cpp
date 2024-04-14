@@ -15,7 +15,7 @@
  * Used to externally instantiate the class.
 */
 MyWiFi::MyWiFi() {
-  // Do nothing...
+  WiFi.setOutputPower(20.5F);
 }
 
 /**
@@ -49,6 +49,9 @@ bool MyWiFi::startAPMode(String hostname, String ip, String subnet, String gatew
   WiFi.softAPConfig(IpUtils::stringIPv4ToIPAddress(ip), IpUtils::stringIPv4ToIPAddress(gateway), IpUtils::stringIPv4ToIPAddress(subnet));
   bool ret = WiFi.softAP(ssid, pwd);
   Serial.println(ret ? F("Complete.") : F("Failed!"));
+  if (ret) {
+    Serial.printf("\nUse the following to connect:\n\tSSID: %s\n\tPwd: %s\n\n", ssid.c_str(), pwd.c_str());
+  }
 
   return ret;
 }
@@ -62,6 +65,26 @@ bool MyWiFi::startAPMode(String hostname, String ip, String subnet, String gatew
 bool MyWiFi::startAPMode() {
   
   return startAPMode(this->hostname, this->apIp, this->apSubnet, this->apGateway, this->apSsid, this->apPwd);
+}
+
+/**
+ * Used to determine if the device is in Access Point mode.
+ * 
+ * @return Returns true if in AP Mode, otherwise returns false as bool.
+*/
+bool MyWiFi::isApMode() {
+  
+  return WiFi.getMode() == WiFiMode::WIFI_AP;
+}
+
+/**
+ * Used to determine if the device is in Station mode.
+ * 
+ * @return Returns a true if in Station mode, otherwise returns false as bool.
+*/
+bool MyWiFi::isStaMode() {
+
+  return WiFi.getMode() == WiFiMode::WIFI_STA;
 }
 
 /**

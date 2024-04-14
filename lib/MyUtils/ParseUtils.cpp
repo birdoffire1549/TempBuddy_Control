@@ -109,8 +109,26 @@ int ParseUtils::occurrences(String string, char toCnt) {
     return count;
 }
 
+/**
+ * Used to tuncate a string to a specific length.
+ * If the given string is less then the truncate length then the
+ * given string is returned unaltered. If the given string is longer
+ * than specified length then the string is trimmed to the specified
+ * length.
+ * 
+ * @param string The given string to truncate as String.
+ * @param length The length to truncate the string to as unsigned int.
+ * 
+ * @return Returns the truncated string as String.
+*/
+String ParseUtils::trunc(String string, unsigned int length) {
+  if (string.length() <= length) {
 
-
+    return string;
+  }
+  
+  return string.substring(0, (length - 1));
+}
 
 /*
   Counts the number of occurrences of a specific character within a 
@@ -191,9 +209,9 @@ int ParseUtils::occurrences(std::string str, std::string toCnt) {
   @param sizeOfStorage - The size of the storage array provided.
 */
 void ParseUtils::split(String string, char separator, String *storage, int sizeOfStorage) {
-  int index = 0;
+  unsigned int index = 0;
   for (int segmentIndex = 0; segmentIndex < sizeOfStorage && index < string.length(); segmentIndex++) { // iterate segment storage...
-    int startIndex = index;
+    unsigned int startIndex = index;
     for (;index < string.length(); index++) { // increment index though length of the string...
       if (string.charAt(index) == separator) { // Found a separator...
         storage[segmentIndex] = string.substring(startIndex, index);
@@ -222,10 +240,10 @@ void ParseUtils::split(String string, char separator, String *storage, int sizeO
   @param storage - An array of strings for storage of the results of the splitting process as std::string pointer.
   @param sizeOfStorage - The size of the storage array provided as int.
 */
-void ParseUtils::split(std::string str, char separator, std::string *storage, int sizeOfStorage) {
-  int index = 0;
-  for (int segmentIndex = 0; segmentIndex < sizeOfStorage && index < str.length(); segmentIndex++) { // iterate segment storage...
-    int startIndex = index;
+void ParseUtils::split(std::string str, char separator, std::string *storage, unsigned int sizeOfStorage) {
+  unsigned int index = 0;
+  for (unsigned int segmentIndex = 0; segmentIndex < sizeOfStorage && index < str.length(); segmentIndex++) { // iterate segment storage...
+    unsigned int startIndex = index;
     for (;index < str.length(); index++) { // increment index though length of the string...
       if (str.at(index) == separator) { // Found a separator...
         storage[segmentIndex] = substring(str, startIndex, index);
@@ -319,7 +337,7 @@ std::string ParseUtils::trim(std::string str) {
 */
 float ParseUtils::toFloat(std::string str) {
   if (!str.empty()) { // Something to work on...
-    for (int i = 0; i < str.length(); i++) { // Verify that chars are valid for a number...
+    for (unsigned int i = 0; i < str.length(); i++) { // Verify that chars are valid for a number...
       if (!((str.at(i) >= '0' && str.at(i) <= '9') || str.at(i) == '.' || str.at(i) == '-')) { // not even close to valid number...
         
         return 0;
@@ -358,7 +376,7 @@ float ParseUtils::toFloat(std::string str) {
 */
 double ParseUtils::toDouble(std::string str) {
   if (!str.empty()) { // Something to work on...
-    for (int i = 0; i < str.length(); i++) { // Verify that chars are valid for a number...
+    for (unsigned int i = 0; i < str.length(); i++) { // Verify that chars are valid for a number...
       if (!((str.at(i) >= '0' && str.at(i) <= '9') || str.at(i) == '.' || str.at(i) == '-')) { // not even close to valid number...
         
         return 0;
@@ -397,7 +415,7 @@ double ParseUtils::toDouble(std::string str) {
 */
 int ParseUtils::toInt(std::string str) {
   if (!str.empty()) { // Something to work on...
-    for (int i = 0; i < str.length(); i++) { // Verify that chars are valid for a number...
+    for (unsigned int i = 0; i < str.length(); i++) { // Verify that chars are valid for a number...
       if (!((str.at(i) >= '0' && str.at(i) <= '9') || str.at(i) == '.' || str.at(i) == '-')) { // not even close to valid number...
         
         return 0;
@@ -450,7 +468,7 @@ int ParseUtils::toInt(std::string str) {
 */
 unsigned int ParseUtils::hexStringToInt(String hex) {
   unsigned int result = 0;
-  for (int i = 0; i < hex.length(); i++) {
+  for (unsigned int i = 0; i < hex.length(); i++) {
     char c = hex.charAt(i);
     unsigned int temp = c - '0';
     if (temp >= 0 && temp <= 9) { // is a number digit...
@@ -493,7 +511,7 @@ unsigned int ParseUtils::hexStringToInt(String hex) {
 */
 unsigned int ParseUtils::hexStringToInt(std::string hex) {
   unsigned int result = 0;
-  for (int i = 0; i < hex.length(); i++) {
+  for (unsigned int i = 0; i < hex.length(); i++) {
     char c = hex.at(i);
     unsigned int temp = c - '0';
     if (temp >= 0 && temp <= 9) { // is a number digit...
@@ -547,7 +565,7 @@ String ParseUtils::arrangeDigitsUsingPattern(String inputString, String inputPat
 
       char prevChar = 0;
       int procIndex = -1;
-      for (int i = 0; i < inputPattern.length(); i++) { // Process the inputString using inputPattern...
+      for (unsigned int i = 0; i < inputPattern.length(); i++) { // Process the inputString using inputPattern...
         if (inputPattern.charAt(i) == prevChar) { // Cur pattern char same as last...
           maskedContent[procIndex].concat(inputString.charAt(i));
         } else { // New pattern char...
@@ -558,12 +576,12 @@ String ParseUtils::arrangeDigitsUsingPattern(String inputString, String inputPat
       }
 
       String result = "";
-      for (int i = 0; i < desiredPattern.length(); i++) { // Build out result based on desiredPattern...
+      for (unsigned int i = 0; i < desiredPattern.length(); i++) { // Build out result based on desiredPattern...
         char c = desiredPattern.charAt(i);
         int count = countConsecutiveRepeatingChars(desiredPattern, i);
         
         // Search for mask related data...
-        int fetchIndex = 0;
+        unsigned int fetchIndex = 0;
         bool found = false;
         for (;fetchIndex < inputPattern.length(); fetchIndex++) {
           if (maskChars[fetchIndex] == c) {
@@ -618,7 +636,7 @@ std::string ParseUtils::arrangeDigitsUsingPattern(std::string inputString, std::
 
       char prevChar = 0;
       int procIndex = -1;
-      for (int i = 0; i < inputPattern.length(); i++) { // Process the inputString using inputPattern...
+      for (unsigned int i = 0; i < inputPattern.length(); i++) { // Process the inputString using inputPattern...
         if (inputPattern.at(i) == prevChar) { // Cur pattern char same as last...
           maskedContent[procIndex] += inputString.at(i);
         } else { // New pattern char...
@@ -629,12 +647,12 @@ std::string ParseUtils::arrangeDigitsUsingPattern(std::string inputString, std::
       }
 
       std::string result = "";
-      for (int i = 0; i < desiredPattern.length(); i++) { // Build out result based on desiredPattern...
+      for (unsigned int i = 0; i < desiredPattern.length(); i++) { // Build out result based on desiredPattern...
         char c = desiredPattern.at(i);
         int count = countConsecutiveRepeatingChars(desiredPattern, i);
         
         // Search for mask related data...
-        int fetchIndex = 0;
+        unsigned int fetchIndex = 0;
         bool found = false;
         for (;fetchIndex < inputPattern.length(); fetchIndex++) {
           if (maskChars[fetchIndex] == c) {
@@ -674,7 +692,7 @@ std::string ParseUtils::arrangeDigitsUsingPattern(std::string inputString, std::
 int ParseUtils::countConsecutiveRepeatingChars(String string, int beginIndex) {
   int count = 1;
   char prevChar = string.charAt(beginIndex);
-  for (int i = (beginIndex + 1); i < string.length(); i++) { // Iterate over string chars...
+  for (unsigned int i = (beginIndex + 1); i < string.length(); i++) { // Iterate over string chars...
     if (prevChar == string.charAt(i)) { // Current char matches previous...
       count++;
     } else { // Current char doesn't match previous one...
@@ -701,7 +719,7 @@ int ParseUtils::countConsecutiveRepeatingChars(String string, int beginIndex) {
 int ParseUtils::countConsecutiveRepeatingChars(std::string str, int beginIndex) {
   int count = 1;
   char prevChar = str.at(beginIndex);
-  for (int i = (beginIndex + 1); i < str.length(); i++) { // Iterate over string chars...
+  for (unsigned int i = (beginIndex + 1); i < str.length(); i++) { // Iterate over string chars...
     if (prevChar == str.at(i)) { // Current char matches previous...
       count++;
     } else { // Current char doesn't match previous one...
