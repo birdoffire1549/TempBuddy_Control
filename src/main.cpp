@@ -80,7 +80,7 @@
 // Define Statements
 // ************************************************************************************
 
-#define FIRMWARE_VERSION "5.1.2"
+#define FIRMWARE_VERSION "5.2.0"
 
 #define LED_PIN 5
 #define OUTLET_PIN 4
@@ -462,7 +462,6 @@ void endpointHandlerAdmin() {
   content.replace("${controllingcoolchecked}", settings.getIsHeat() ? "" : "checked");
   content.replace("${desiredtemp}", String(settings.getDesiredTemp()));
   content.replace("${temppadding}", String(settings.getTempPadding()));
-  content.replace("${timeout}", String(settings.getTimeout()));
   content.replace("${adminuser}", settings.getAdminUser());
   content.replace("${adminpwd}", settings.getAdminPwd());
   
@@ -610,7 +609,7 @@ void endpointHandlerAdmin() {
  * 
 */
 void notFoundHandler() {
-  Serial.printf("Client requested '%'; 404 - Not Found send to client!\n", webServer.uri().c_str());
+  Serial.printf("Client requested '%s'; 404 - Not Found send to client!\n", webServer.uri().c_str());
   webServer.send(404, "text/html", htmlPageTemplate(F("404 Not Found"), F("OOPS! You broke it!!!"), F("Just kidding...<br>But seriously what you were looking for doesn't exist.")));
 }
 

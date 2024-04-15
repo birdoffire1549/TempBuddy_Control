@@ -18,11 +18,9 @@
     #include <WString.h>
     #include <core_esp8266_features.h>
     #include <HardwareSerial.h>
-    #include <Hash.h>
+    #include <MD5Builder.h>
 
     class Settings {
-        const unsigned long SENTINEL_VALUE = 0xFD2F; // Helps ensure memory location contains expected contents.
-
         private:
             // *****************************************************************************
             // Structure used for storing of settings related data and persisted into flash
@@ -45,10 +43,29 @@
                 float          tempPadding            ;
                 bool           isHeat                 ;
                 bool           isAutoControl          ;
-                unsigned long  timeout                ;
-                bool           isFactory              ;
-                unsigned long  sentinel               ;
+                char           sentinel         [33]  ; // Holds a 32 MD5 hash + 1
             } nvSettings;
+
+            struct NonVolatileSettings factorySettings = {
+                "TempBuddy-Ctrl", // <------- hostname
+                "SET_ME", // <--------------- ssid
+                "SET_ME", // <--------------- pwd
+                "admin", // <---------------- adminUser
+                "admin", // <---------------- adminPwd
+                "TempBuddy_Ctrl", // <------- apSsid
+                "P@ssw0rd123", // <---------- apPwd
+                "192.168.1.1", // <---------- apNetIp
+                "255.255.255.0", // <-------- apSubnet
+                "0.0.0.0", // <-------------- apGateway
+                "TempBuddy Control", // <---- title
+                "Device Info", // <---------- heading
+                "0.0.0.0", // <-------------- tempBuddyIp
+                72.0, // <------------------- desiredTemp
+                0.5, // <-------------------- tempPadding
+                true, // <------------------- isHeat
+                false, // <------------------ isAutoControl
+                "NA" // <-------------------- sentinel
+            };
 
             // ******************************************************************
             // Structure used for storing of settings related data NOT persisted
@@ -59,7 +76,8 @@
             } vSettings;
             
             void defaultSettings();
-            
+            String hashNvSettings(NonVolatileSettings nvSet);
+
 
         public:
             Settings();
@@ -75,8 +93,6 @@
                                 Getters and Setters 
             =========================================================
             */
-            void           settingsChanged   ()                       ;
-
             void           setHostname       (const char *hostname)   ;
             String         getHostname       ()                       ;
             void           setSsid           (const char *ssid)       ;
@@ -111,8 +127,6 @@
             float          getTempPadding    ()                       ;
             void           setIsHeat         (bool isHeat)            ;
             bool           getIsHeat         ()                       ;
-            void           setTimeout        (unsigned long timeout)  ;
-            unsigned long  getTimeout        ()                       ;
             void           setIsControlOn    (bool isOn)              ;
             bool           getIsControlOn    ()                       ;
             void           setIsAutoControl  (bool autoOn)            ; 

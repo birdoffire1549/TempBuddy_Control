@@ -10,7 +10,7 @@ IPAddress IpUtils::stringIPv4ToIPAddress(String ip) {
 
     int curIndex = 0;
     String temp = "";
-    for (int i = 0; i < ip.length(); i++) {
+    for (unsigned int i = 0; i < ip.length(); i++) {
         if (ip.charAt(i) != '.') {
             temp.concat(ip.charAt(i));
         } else {

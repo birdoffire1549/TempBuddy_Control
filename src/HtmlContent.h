@@ -112,7 +112,6 @@
                 "</tr>"
                 "<tr><td>Desired Temp:</td><td><input type=\"number\" id=\"desiredtemp\" name=\"desiredtemp\" min=\"-100.0\" max=\"100.0\" step=\".1\" value=\"${desiredtemp}\"> (&deg;F)</td></tr> "
                 "<tr><td>Temp Padding:</td><td><input type=\"number\" id=\"temppadding\" name=\"temppadding\" min=\"0.0\" max=\"100.0\" step=\".1\" value=\"${temppadding}\"> (&deg;F)</td></tr> "
-                "<tr><td>Client Timeout:</td><td><input type=\"number\" value=${timeout} name=\"timeout\" id=\"timeout\"> (milliseconds)</td></tr> "
                 "<tr><td>Admin User:</td><td><input maxlength=\"12\" type=\"text\" value=\"${adminuser}\" name=\"adminuser\" id=\"adminuser\"></td></tr> "
                 "<tr><td>Admin Password:</td><td><input maxlength=\"12\" type=\"text\" value=\"${adminpwd}\" name=\"adminpwd\" id=\"adminpwd\"></td></tr> "
             "</table>"
