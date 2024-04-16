@@ -75,6 +75,7 @@
 #include "ParseUtils.h"
 
 #include <ESP8266HTTPClient.h>
+#include <WString.h>
 
 // ************************************************************************************
 // Define Statements
@@ -109,7 +110,15 @@ void doHandleDeviceOperations(void);
 void resetOrLoadSettings(void);
 void doStartNetwork(void);
 void checkIpDisplayRequest(void);
-String htmlPageTemplate(String title, String heading, String content, String redirectUrl = "", int delaySeconds = 3);
+
+String htmlPageTemplate(
+  String title, 
+  String heading, 
+  String &content, 
+  String redirectUrl = "", 
+  int delaySeconds = 3
+);
+
 void fileUploadHandler(void);
 void notFoundHandler(void);
 void endpointHandlerAdmin(void);
@@ -408,7 +417,12 @@ void endpointHandlerRoot() {
   bool isAutoCtrl = settings.getIsAutoControl();
   String result = "";
   if (!isAutoCtrl) { // AutoControl is OFF...
-    content = content + String(MANUAL_CONTROLS_SECTION);
+    String buddySensorIp = settings.getTempBuddyIp();
+    if (buddySensorIp.isEmpty() || buddySensorIp.equals("0.0.0.0")) {
+      content = content + String(MANUAL_CONTROLS_ONLY_SECTION);
+    } else {
+      content = content + String(MANUAL_CONTROLS_SECTION);
+    }
   } else { // AutoControl is ON...
     String temp = String(AUTO_CONTROLS_SECTION);
     temp.replace("${desiredtemp}", String(settings.getDesiredTemp()));
@@ -417,7 +431,114 @@ void endpointHandlerRoot() {
   }
 
   Serial.println(F("Sending html to client for endpoint: '/'"));
-  webServer.send(200, "text/html", htmlPageTemplate(String(settings.getTitle()), String(settings.getHeading()), content));
+  webServer.send(
+    200, 
+    "text/html", 
+    htmlPageTemplate(String(settings.getTitle()), String(settings.getHeading()), content).c_str()
+  );
+}
+
+bool adminPageSettingsUpdater() {
+  /* Aquire Incoming Settings */
+  String ssid = webServer.arg("ssid");
+  String pwd = webServer.arg("pwd");
+  String hostname = webServer.arg("hostname");
+  String apSsid = webServer.arg("apssid");
+  String apPwd = webServer.arg("appwd");
+  String apNetIp = webServer.arg("apnetip");
+  String apSubnet = webServer.arg("apsubnet");
+  String apGateway = webServer.arg("apgateway");
+  String title = webServer.arg("title");
+  String heading = webServer.arg("heading");
+  String budyIp = webServer.arg("budyip");
+  String isAutoCtrl = webServer.arg("autocontrol");
+  String isHeat = webServer.arg("controltype");
+  String desiredTemp = webServer.arg("desiredtemp");
+  String tempPadding = webServer.arg("temppadding");
+  String adminUser = webServer.arg("adminuser");
+  String adminPwd = webServer.arg("adminpwd");
+
+  bool changeRequiresReboot = false; // True if a change was made which will require a reboot to implement.
+
+  /* Verify and Store New Settings */
+  if (!ssid.isEmpty() && !ssid.equals(settings.getSsid())) { // <------------ ssid
+    changeRequiresReboot = true;
+    settings.setSsid(ssid.c_str());
+  }
+  if (!pwd.isEmpty() && !pwd.equals(settings.getPwd())) { // <--------------- pwd
+    changeRequiresReboot = true;
+    settings.setPwd(pwd.c_str());
+  }
+  if (!hostname.isEmpty()) { // <-------------------------------------------- hostname
+    changeRequiresReboot = true;
+    settings.setHostname(ParseUtils::trunc(hostname, 63).c_str());
+  }
+  if (!apSsid.isEmpty()) { // <---------------------------------------------- apSsid
+    changeRequiresReboot = true;
+    settings.setApSsid(ParseUtils::trunc(apSsid, 32).c_str());
+  }
+  if (!apPwd.isEmpty()) { // <----------------------------------------------- apPwd
+    changeRequiresReboot = true;
+    settings.setApPwd(apPwd.c_str());
+  }
+  if (!apNetIp.isEmpty()) { // <--------------------------------------------- apNetIp
+    changeRequiresReboot = true;
+    settings.setApNetIp(apNetIp.c_str());
+  }
+  if (!apSubnet.isEmpty()) { // <-------------------------------------------- apSubnet
+    changeRequiresReboot = true;
+    settings.setApSubnet(apSubnet.c_str());
+  }
+  if (!apGateway.isEmpty()) { // <------------------------------------------- apGateway
+    changeRequiresReboot = true;
+    settings.setApGateway(apGateway.c_str());
+  }
+  if (!title.isEmpty()) { // <----------------------------------------------- title
+    settings.setTitle(title.c_str());
+  }
+  if (!heading.isEmpty()) { // <--------------------------------------------- heading
+    settings.setHeading(heading.c_str());
+  }
+  if (isAutoCtrl.equals("enabled")) { // <----------------------------------- isAutoCtrl
+    settings.setIsAutoControl(true);
+  } else if (isAutoCtrl.equals("disabled")) {
+    settings.setIsAutoControl(false);
+  }
+  if (isHeat.equals("heat")) { // <------------------------------------------ isHeat
+    settings.setIsHeat(true);
+  } else if (isHeat.equals("cool")) {
+    settings.setIsHeat(false);
+  }
+  float fTemp = 0;
+  if (
+    !desiredTemp.isEmpty() 
+    && (fTemp = desiredTemp.toFloat()) >= -100.0 
+    && fTemp <= 100.0
+  ) { // <------------------------------------------------------------------ desiredTemp
+    settings.setDesiredTemp(fTemp);
+  }
+  if (budyIp.isEmpty() || ParseUtils::validDotNotationIp(budyIp)) { // <---- budyIp
+    if (!budyIp.isEmpty() && settings.getTempBuddyIp().isEmpty()) {
+      // FYI: This prevents inital action before first read
+      settings.setLastKnownTemp(settings.getDesiredTemp());
+    }
+    settings.setTempBuddyIp(budyIp.c_str());
+  }
+  if (
+    !tempPadding.isEmpty() 
+    && (fTemp = tempPadding.toFloat()) >= 0.0 
+    && fTemp <= 100.0
+  ) { // <------------------------------------------------------------------ tempPadding
+    settings.setTempPadding(fTemp);
+  }
+  if (!adminUser.isEmpty() && adminUser.length() <= 12) { // <-------------- adminUser
+    settings.setAdminUser(adminUser.c_str());
+  }
+  if (!adminPwd.isEmpty() && adminPwd.length() <= 12) { // <---------------- adminPwd
+    settings.setAdminPwd(adminPwd.c_str());
+  }
+
+  return changeRequiresReboot;
 }
 
 /** 
@@ -432,17 +553,14 @@ void endpointHandlerAdmin() {
   /* Ensure user authenticated */
   Serial.println("Client requested access to '/admin'...");
   if (!webServer.authenticate("admin", settings.getAdminPwd().c_str())) { // User not authenticated...
-    Serial.println("Client failed Authentication!");
+    Serial.println("Client not(yet) Authenticated!");
 
     return webServer.requestAuthentication(DIGEST_AUTH, "AdminRealm", "Authentication failed!");
   }
-
   Serial.println("Client has been Authenticated; Generating web content...");
 
-  // Initial content is the login page unless authenticated
-  String content = String(ADMIN_SETTINGS_PAGE);
-  
-  bool requiresReboot = false;
+  static String content = ADMIN_SETTINGS_PAGE;
+  bool changeRequiresReboot = false;
   
   // Insert data into page contents...
   content.replace("${hostname}", settings.getHostname());
@@ -466,119 +584,22 @@ void endpointHandlerAdmin() {
   content.replace("${adminpwd}", settings.getAdminPwd());
   
   if (webServer.arg("source").equalsIgnoreCase("settings")) { // Refered from settings page so do update...
-    // Aquire the incoming new settings...
-    String ssid = webServer.arg("ssid");
-    String pwd = webServer.arg("pwd");
-    String hostname = webServer.arg("hostname");
-    String apSsid = webServer.arg("apssid");
-    String apPwd = webServer.arg("appwd");
-    String apNetIp = webServer.arg("apnetip");
-    String apSubnet = webServer.arg("apsubnet");
-    String apGateway = webServer.arg("apgateway");
-    String title = webServer.arg("title");
-    String heading = webServer.arg("heading");
-    String budyIp = webServer.arg("budyip");
-    String isAutoCtrl = webServer.arg("autocontrol");
-    String isHeat = webServer.arg("controltype");
-    String desiredTemp = webServer.arg("desiredtemp");
-    String tempPadding = webServer.arg("temppadding");
-    String adminUser = webServer.arg("adminuser");
-    String adminPwd = webServer.arg("adminpwd");
-
-    /* ************************ *
-     * Verify Settings Validity *
-     * ************************ */
-    if (!ssid.isEmpty() && !ssid.equals(settings.getSsid())) { // <------------ ssid
-      requiresReboot = true;
-      settings.setSsid(ssid.c_str());
-    }
-    if (!pwd.isEmpty() && !pwd.equals(settings.getPwd())) { // <--------------- pwd
-      requiresReboot = true;
-      settings.setPwd(pwd.c_str());
-    }
-    if (!hostname.isEmpty()) { // <-------------------------------------------- hostname
-      requiresReboot = true;
-      settings.setHostname(ParseUtils::trunc(hostname, 63).c_str());
-    }
-    if (!apSsid.isEmpty()) { // <---------------------------------------------- apSsid
-      requiresReboot = true;
-      settings.setApSsid(ParseUtils::trunc(apSsid, 32).c_str());
-    }
-    if (!apPwd.isEmpty()) { // <----------------------------------------------- apPwd
-      requiresReboot = true;
-      settings.setApPwd(apPwd.c_str());
-    }
-    if (!apNetIp.isEmpty()) { // <--------------------------------------------- apNetIp
-      requiresReboot = true;
-      settings.setApNetIp(apNetIp.c_str());
-    }
-    if (!apSubnet.isEmpty()) { // <-------------------------------------------- apSubnet
-      requiresReboot = true;
-      settings.setApSubnet(apSubnet.c_str());
-    }
-    if (!apGateway.isEmpty()) { // <------------------------------------------- apGateway
-      requiresReboot = true;
-      settings.setApGateway(apGateway.c_str());
-    }
-    if (!title.isEmpty()) { // <----------------------------------------------- title
-      settings.setTitle(title.c_str());
-    }
-    if (!heading.isEmpty()) { // <--------------------------------------------- heading
-      settings.setHeading(heading.c_str());
-    }
-    if (isAutoCtrl.equals("enabled")) { // <----------------------------------- isAutoCtrl
-      settings.setIsAutoControl(true);
-    } else if (isAutoCtrl.equals("disabled")) {
-      settings.setIsAutoControl(false);
-    }
-    if (isHeat.equals("heat")) { // <------------------------------------------ isHeat
-      settings.setIsHeat(true);
-    } else if (isHeat.equals("cool")) {
-      settings.setIsHeat(false);
-    }
-    float fTemp = 0;
-    if (
-      !desiredTemp.isEmpty() 
-      && (fTemp = desiredTemp.toFloat()) >= -100.0 
-      && fTemp <= 100.0
-    ) { // <------------------------------------------------------------------ desiredTemp
-      settings.setDesiredTemp(fTemp);
-    }
-    if (budyIp.isEmpty() || ParseUtils::validDotNotationIp(budyIp)) { // <---- budyIp
-      if (!budyIp.isEmpty() && settings.getTempBuddyIp().isEmpty()) {
-        // FYI: This prevents inital action before first read
-        settings.setLastKnownTemp(settings.getDesiredTemp());
-      }
-      settings.setTempBuddyIp(budyIp.c_str());
-    }
-    if (
-      !tempPadding.isEmpty() 
-      && (fTemp = tempPadding.toFloat()) >= 0.0 
-      && fTemp <= 100.0
-    ) { // <------------------------------------------------------------------ tempPadding
-      settings.setTempPadding(fTemp);
-    }
-    if (!adminUser.isEmpty() && adminUser.length() <= 12) { // <-------------- adminUser
-      settings.setAdminUser(adminUser.c_str());
-    }
-    if (!adminPwd.isEmpty() && adminPwd.length() <= 12) { // <---------------- adminPwd
-      settings.setAdminPwd(adminPwd.c_str());
-    }
-
+    changeRequiresReboot = adminPageSettingsUpdater();
+    
     /* ********************** *
      * Save Settings To NVRAM *
      * ********************** */
     if (settings.saveSettings()) { // Successful...
-      if (requiresReboot) { // Needs to reboot...
+      if (changeRequiresReboot) { // Needs to reboot...
         content = F("<div id=\"successful\">Settings update Successful!</div><h4>Device will reboot now...</h4>");
         
         Serial.println("Sending '/admin' content to client, then rebooting to apply changes.");
-
-        webServer.send(200, "text/html", htmlPageTemplate(settings.getTitle(), "Device Settings", content));
+        webServer.send(200, "text/html", htmlPageTemplate(settings.getTitle(), F("Device Settings"), content));
         delay(1000);
         ESP.restart();
       } else { // No reboot needed; Send to home page...
         Serial.println("Sending '/admin' content to client.");
+        content = F("<div id=\"success\">Settings update Successful!</div><a href='/'><h4>Home</h4></a>");
 
         return webServer.send(
           200, 
@@ -586,7 +607,7 @@ void endpointHandlerAdmin() {
           htmlPageTemplate(
             settings.getTitle(), 
             F("Device Settings"), 
-            F("<div id=\"success\">Settings update Successful!</div><a href='/'><h4>Home</h4></a>"), 
+            content, 
             "/", 
             5
           )
@@ -594,13 +615,26 @@ void endpointHandlerAdmin() {
       }
     } else { // Error...
       Serial.println("Sending '/admin' content to client; An error prevented saving settings!");
-
-      return webServer.send(500, "text/html", htmlPageTemplate(F("500 - Server Error"), F("Server Error!"), F("<div id=\"failed\">Error Saving Settings!!!</div>"), "/", 5));
+      content = F("<div id=\"failed\">Error Saving Settings!!!</div>");
+      
+      return webServer.send(
+        500, 
+        "text/html", 
+        htmlPageTemplate(
+          F("500 - Server Error"), 
+          F("Server Error!"), 
+          content, 
+          "/", 
+          5
+        )
+      );
     }
   }
-  Serial.println("Seinding '/admin' content to client.");
 
-  webServer.send(200, "text/html", htmlPageTemplate(settings.getTitle(), F("Device Settings"), content));
+  Serial.println("Seinding '/admin' content to client.");
+  String htmlPage = htmlPageTemplate(settings.getTitle(), F("Device Settings"), content);
+  
+  return webServer.send(200, "text/html", htmlPage);
 }
 
 /**
@@ -610,7 +644,8 @@ void endpointHandlerAdmin() {
 */
 void notFoundHandler() {
   Serial.printf("Client requested '%s'; 404 - Not Found send to client!\n", webServer.uri().c_str());
-  webServer.send(404, "text/html", htmlPageTemplate(F("404 Not Found"), F("OOPS! You broke it!!!"), F("Just kidding...<br>But seriously what you were looking for doesn't exist.")));
+  String content = F("Just kidding...<br>But seriously what you were looking for doesn't exist.");
+  webServer.send(404, "text/html", htmlPageTemplate(F("404 Not Found"), F("OOPS! You broke it!!!"), content));
 }
 
 /**
@@ -618,8 +653,9 @@ void notFoundHandler() {
  * This function handles file upload requests.
 */
 void fileUploadHandler() {
-  Serial.println("Client attempted to upload a file and I was like Wuuuut!?");
-  webServer.send(400, "text/html", htmlPageTemplate(F("400 Bad Request"), F("Uhhh, Wuuuuut!?"), F("Um, I don't want your nasty files, go peddle that junk elsewhere!")));
+  Serial.println(F("Client attempted to upload a file and I was like Wuuuut!?"));
+  String content = F("Um, I don't want your nasty files, go peddle that junk elsewhere!");
+  webServer.send(400, "text/html", htmlPageTemplate(F("400 Bad Request"), F("Uhhh, Wuuuuut!?"), content));
 }
 
 /** 
@@ -636,21 +672,22 @@ void fileUploadHandler() {
  * @param delaySeconds - OPTIONAL PARAM, the number of seconds to delay before sending
  * the client to the redirectUrl, as int.
 */
-String htmlPageTemplate(String title, String heading, String content, String redirectUrl, int delaySeconds) {
-  String result = HTML_PAGE_TEMPLATE;
-
+String htmlPageTemplate(String title, String heading, String &content, String  redirectUrl, int delaySeconds) {
+  String result = String(HTML_PAGE_TEMPLATE);
+  
   // Prepare the contents of the HTML page...
   result.replace("${title}", title);
   result.replace("${heading}", heading);
   result.replace("${content}", content);
+
   if (redirectUrl.isEmpty()) { // No redirect URL was specified...
     result.replace("${metainsert}", "");
   } else { // A redirect was specified...
     String temp = "<meta http-equiv=\"refresh\" content=\"";
-    temp.concat(String(delaySeconds));
-    temp.concat("\"; URL=\"");
-    temp.concat(redirectUrl);
-    temp.concat("\" />");
+    temp = temp + String(delaySeconds);
+    temp = temp + "\"; URL=\"";
+    temp = temp + redirectUrl;
+    temp = temp + "\" />";
 
     result.replace("${metainsert}",  temp);
   }

@@ -120,6 +120,15 @@
         "</form>"}
     ;
 
+    const char PROGMEM MANUAL_CONTROLS_ONLY_SECTION[] = {""
+        "<br><hr><br>"
+        "<form name=\"manualControls\" method=\"post\" id=\"manualControls\" action=\"/\"> "
+            "<input type=\"hidden\" id=\"source\" name=\"source\" value=\"manualcontrols\">"
+            "Manual Controls: " 
+            "<button type=\"submit\" formaction=\"/?control=on\">On</button>    <button type=\"submit\" formaction=\"/?control=off\">Off</button>"
+        "</form>"}
+    ;
+
     /*
      * This is the Manual Controls section of the Info Page.
      * These controls are only shown on the Info Page when 
