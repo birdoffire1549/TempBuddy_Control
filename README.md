@@ -1,6 +1,6 @@
 # TempBuddy Control
 > Document Last Updated for:   
-> Firmware Version: 5.2.0
+> Firmware Version: 5.2.1
 ## Overview
 This software was written to be utilized by an ESP8266 Device in a specialized hardware configuration known as a TempBuddy Control Unit. It is also intended that this unit be operated in conjunction with a TempBuddy Sensor device, however the Sensor is not required as this unit still provides functionality and usefullness without it.
 
@@ -16,8 +16,11 @@ This unit can be pointed at the IP of a TempBuddy Sensor device and read its tem
 > on how to generate your own certificates, or look further below in this document as
 > I have updated this README to also contain the instructions.
 >
-> Sorry, but at this point certs are baked into the binary when compiled and cannot
-> be changed out during runtime. I may add that capability at a later time.
+> Sorry, but certs are baked into the binary when compiled and cannot
+> be changed out during runtime. The ESP8266 is just too limited to have all
+> the bells and whistles. There is more I wanted to do but I had even had to scale
+> back to basic SSL ciphers because the device would sometime not serve the Admin 
+> properly due to memory restrictions.
 
 ### Hosted Endpoints:
 | Endpoint | Description |
