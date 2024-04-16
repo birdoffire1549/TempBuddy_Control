@@ -294,14 +294,14 @@ void doHandleReadTempBuddy() {
                 WiFiClient client;
                 HTTPClient http;
 
-                http.begin(client, String("http://") + settings.getTempBuddyIp() + "/");
+                http.begin(client, String(F("http://")) + settings.getTempBuddyIp() + "/");
 
                 int respCode = http.GET();
                 if (respCode >= 200 && respCode <= 299) { // Good response...
                     Serial.printf("Got a '%d' response code from TempBuddy.\n", respCode);
                     String payload = http.getString();
                     if (!payload.isEmpty()) { // Something in payload...
-                        String temp = ParseUtils::parseByKeyword(payload, "Temperature:", "&deg;");
+                        String temp = ParseUtils::parseByKeyword(payload, F("Temperature:"), F("&deg;"));
                         temp.trim();
                         if (!temp.isEmpty()) { // String not empty...
                            settings.setLastKnownTemp(temp.toFloat());
@@ -341,8 +341,8 @@ void initWebServer() {
   webServer.getServer().setCache(&serverCache);
 
   /* Setup Endpoint Handlers */
-  webServer.on("/", endpointHandlerRoot);
-  webServer.on("/admin", endpointHandlerAdmin);
+  webServer.on(F("/"), endpointHandlerRoot);
+  webServer.on(F("/admin"), endpointHandlerAdmin);
   webServer.onNotFound(notFoundHandler);
   webServer.onFileUpload(fileUploadHandler);
 
@@ -551,15 +551,15 @@ bool adminPageSettingsUpdater() {
 */
 void endpointHandlerAdmin() {
   /* Ensure user authenticated */
-  Serial.println("Client requested access to '/admin'...");
+  Serial.println(F("Client requested access to '/admin'..."));
   if (!webServer.authenticate("admin", settings.getAdminPwd().c_str())) { // User not authenticated...
-    Serial.println("Client not(yet) Authenticated!");
+    Serial.println(F("Client not(yet) Authenticated!"));
 
     return webServer.requestAuthentication(DIGEST_AUTH, "AdminRealm", "Authentication failed!");
   }
-  Serial.println("Client has been Authenticated; Generating web content...");
+  Serial.println(F("Client has been Authenticated; Generating web content..."));
 
-  static String content = ADMIN_SETTINGS_PAGE;
+  String content = ADMIN_SETTINGS_PAGE;
   bool changeRequiresReboot = false;
   
   // Insert data into page contents...
@@ -595,13 +595,14 @@ void endpointHandlerAdmin() {
         
         Serial.println("Sending '/admin' content to client, then rebooting to apply changes.");
         webServer.send(200, "text/html", htmlPageTemplate(settings.getTitle(), F("Device Settings"), content));
+        yield();
         delay(1000);
         ESP.restart();
       } else { // No reboot needed; Send to home page...
         Serial.println("Sending '/admin' content to client.");
         content = F("<div id=\"success\">Settings update Successful!</div><a href='/'><h4>Home</h4></a>");
 
-        return webServer.send(
+        webServer.send(
           200, 
           "text/html", 
           htmlPageTemplate(
@@ -612,12 +613,15 @@ void endpointHandlerAdmin() {
             5
           )
         );
+        yield();
+
+        return;
       }
     } else { // Error...
       Serial.println("Sending '/admin' content to client; An error prevented saving settings!");
       content = F("<div id=\"failed\">Error Saving Settings!!!</div>");
       
-      return webServer.send(
+      webServer.send(
         500, 
         "text/html", 
         htmlPageTemplate(
@@ -628,13 +632,17 @@ void endpointHandlerAdmin() {
           5
         )
       );
+      yield();
+      
+      return;
     }
   }
 
-  Serial.println("Seinding '/admin' content to client.");
+  Serial.println(F("Seinding '/admin' content to client."));
   String htmlPage = htmlPageTemplate(settings.getTitle(), F("Device Settings"), content);
   
-  return webServer.send(200, "text/html", htmlPage);
+  webServer.send(200, "text/html", htmlPage);
+  yield();
 }
 
 /**
@@ -673,7 +681,10 @@ void fileUploadHandler() {
  * the client to the redirectUrl, as int.
 */
 String htmlPageTemplate(String title, String heading, String &content, String  redirectUrl, int delaySeconds) {
-  String result = String(HTML_PAGE_TEMPLATE);
+  String result = HTML_PAGE_TEMPLATE;
+  if (!result.reserve(8000U)) {
+    Serial.println(F("WARNING!!! htmlPageTemplate() failed to reserve desired memory!"));
+  }
   
   // Prepare the contents of the HTML page...
   result.replace("${title}", title);
