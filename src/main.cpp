@@ -111,7 +111,8 @@ void resetOrLoadSettings(void);
 void doStartNetwork(void);
 void checkIpDisplayRequest(void);
 
-String htmlPageTemplate(
+void sendHtmlPageUsingTemplate(
+  int code,
   String title, 
   String heading, 
   String &content, 
@@ -356,8 +357,7 @@ void initWebServer() {
 */
 void endpointHandlerRoot() {
   String content = "";
-  Serial.println(F("Client requested endpoint: '/'; Generating response content..."));
-
+  
   // Handle incoming parameters...
   if (webServer.arg("source").equalsIgnoreCase("manualcontrols") && !settings.getIsAutoControl()) { // <----------------------- AutoControl is OFF...
     String autoControl = webServer.arg("autocontrol");
@@ -430,12 +430,7 @@ void endpointHandlerRoot() {
     content = content + temp;    
   }
 
-  Serial.println(F("Sending html to client for endpoint: '/'"));
-  webServer.send(
-    200, 
-    "text/html", 
-    htmlPageTemplate(String(settings.getTitle()), String(settings.getHeading()), content).c_str()
-  );
+  sendHtmlPageUsingTemplate(200, settings.getTitle(), settings.getHeading(), content);
 }
 
 bool adminPageSettingsUpdater() {
@@ -557,7 +552,7 @@ void endpointHandlerAdmin() {
 
     return webServer.requestAuthentication(DIGEST_AUTH, "AdminRealm", "Authentication failed!");
   }
-  Serial.println(F("Client has been Authenticated; Generating web content..."));
+  Serial.println(F("Client has been Authenticated."));
 
   String content = ADMIN_SETTINGS_PAGE;
   bool changeRequiresReboot = false;
@@ -593,44 +588,35 @@ void endpointHandlerAdmin() {
       if (changeRequiresReboot) { // Needs to reboot...
         content = F("<div id=\"successful\">Settings update Successful!</div><h4>Device will reboot now...</h4>");
         
-        Serial.println("Sending '/admin' content to client, then rebooting to apply changes.");
-        webServer.send(200, "text/html", htmlPageTemplate(settings.getTitle(), F("Device Settings"), content));
+        sendHtmlPageUsingTemplate(200, settings.getTitle(), F("Device Settings"), content);
         yield();
         delay(1000);
         ESP.restart();
       } else { // No reboot needed; Send to home page...
-        Serial.println("Sending '/admin' content to client.");
         content = F("<div id=\"success\">Settings update Successful!</div><a href='/'><h4>Home</h4></a>");
 
-        webServer.send(
-          200, 
-          "text/html", 
-          htmlPageTemplate(
-            settings.getTitle(), 
-            F("Device Settings"), 
-            content, 
-            "/", 
-            5
-          )
+        sendHtmlPageUsingTemplate(
+          200,
+          settings.getTitle(), 
+          F("Device Settings"), 
+          content, 
+          "/", 
+          5
         );
         yield();
 
         return;
       }
     } else { // Error...
-      Serial.println("Sending '/admin' content to client; An error prevented saving settings!");
       content = F("<div id=\"failed\">Error Saving Settings!!!</div>");
       
-      webServer.send(
-        500, 
-        "text/html", 
-        htmlPageTemplate(
-          F("500 - Server Error"), 
-          F("Server Error!"), 
-          content, 
-          "/", 
-          5
-        )
+      sendHtmlPageUsingTemplate(
+        500,
+        F("500 - Server Error"), 
+        F("Server Error!"), 
+        content, 
+        "/", 
+        5
       );
       yield();
       
@@ -638,11 +624,7 @@ void endpointHandlerAdmin() {
     }
   }
 
-  Serial.println(F("Seinding '/admin' content to client."));
-  String htmlPage = htmlPageTemplate(settings.getTitle(), F("Device Settings"), content);
-  
-  webServer.send(200, "text/html", htmlPage);
-  yield();
+  sendHtmlPageUsingTemplate(200, settings.getTitle(), F("Device Settings"), content);
 }
 
 /**
@@ -651,9 +633,8 @@ void endpointHandlerAdmin() {
  * 
 */
 void notFoundHandler() {
-  Serial.printf("Client requested '%s'; 404 - Not Found send to client!\n", webServer.uri().c_str());
   String content = F("Just kidding...<br>But seriously what you were looking for doesn't exist.");
-  webServer.send(404, "text/html", htmlPageTemplate(F("404 Not Found"), F("OOPS! You broke it!!!"), content));
+  sendHtmlPageUsingTemplate(404, F("404 Not Found"), F("OOPS! You broke it!!!"), content);
 }
 
 /**
@@ -661,9 +642,8 @@ void notFoundHandler() {
  * This function handles file upload requests.
 */
 void fileUploadHandler() {
-  Serial.println(F("Client attempted to upload a file and I was like Wuuuut!?"));
   String content = F("Um, I don't want your nasty files, go peddle that junk elsewhere!");
-  webServer.send(400, "text/html", htmlPageTemplate(F("400 Bad Request"), F("Uhhh, Wuuuuut!?"), content));
+  sendHtmlPageUsingTemplate(400, F("400 Bad Request"), F("Uhhh, Wuuuuut!?"), content);
 }
 
 /** 
@@ -672,17 +652,18 @@ void fileUploadHandler() {
  * This function is used to Generate the HTML for a web page where the 
  * title, heading and content is provided to the function as parameters.
  * 
- * @param title - The page's title as String.
- * @param heading - The heading that appears on the info page as String.
- * @param content - The main content of the web page as String.
- * @param redirectUrl - OPTIONAL PARAM, used to specify a page that this page should
+ * @param code The HTTP Code as int.
+ * @param title The page's title as String.
+ * @param heading The heading that appears on the info page as String.
+ * @param content The main content of the web page as String.
+ * @param redirectUrl OPTIONAL PARAM, used to specify a page that this page should
  * redirect to after a specified amount of time.
- * @param delaySeconds - OPTIONAL PARAM, the number of seconds to delay before sending
+ * @param delaySeconds OPTIONAL PARAM, the number of seconds to delay before sending
  * the client to the redirectUrl, as int.
 */
-String htmlPageTemplate(String title, String heading, String &content, String  redirectUrl, int delaySeconds) {
+void sendHtmlPageUsingTemplate(int code, String title, String heading, String &content, String  redirectUrl, int delaySeconds) {
   String result = HTML_PAGE_TEMPLATE;
-  if (!result.reserve(8000U)) {
+  if (!result.reserve(6000U)) {
     Serial.println(F("WARNING!!! htmlPageTemplate() failed to reserve desired memory!"));
   }
   
@@ -703,5 +684,6 @@ String htmlPageTemplate(String title, String heading, String &content, String  r
     result.replace("${metainsert}",  temp);
   }
 
-  return result;
+  webServer.send(code, "text/html", result);
+  yield();
 }
