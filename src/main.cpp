@@ -7,14 +7,14 @@
   Overview:
   This software was written to be utilized by an ESP8266 Device.
   The device using this software is refered to as a TempBuddy Control Unit.
-  It was designed to work with another project that is refered to as a TempBuddy Sensor, that 
-  particular device has the ability to sense and report Temperature and Humidity data via a web 
-  interface. This device can be pointed at the IP of a TempBuddy device and read its temp and then 
-  react to the temperature by controlling an outlet which can have a Heating or Cooling device 
-  attached to it. If no TempBuddy is connected to this device then the user has the ability to 
-  manually control the attached outlet through the hosted webpage. This device also hosts a webpage 
-  that can be accessed using the device's IP Address and Port 80. Also this device can be configured 
-  by accessing its admin page either via an existing WiFi or the device's TempBuddy_Ctrl wifi network 
+  It was designed to work with another project that is refered to as a TempBuddy Sensor, that
+  particular device has the ability to sense and report Temperature and Humidity data via a web
+  interface. This device can be pointed at the IP of a TempBuddy device and read its temp and then
+  react to the temperature by controlling an outlet which can have a Heating or Cooling device
+  attached to it. If no TempBuddy is connected to this device then the user has the ability to
+  manually control the attached outlet through the hosted webpage. This device also hosts a webpage
+  that can be accessed using the device's IP Address and Port 80. Also this device can be configured
+  by accessing its admin page either via an existing WiFi or the device's TempBuddy_Ctrl wifi network
   when it is in AP Mode.
 
   Hosted Endpoints:
@@ -22,32 +22,32 @@
   /admin   - This is where the device's settings are configured. Default User: admin, Default Password: admin
 
   More Detailed:
-  When device is first programmed it boots up as an AccessPoint that can be connected to using a computer, 
+  When device is first programmed it boots up as an AccessPoint that can be connected to using a computer,
   by connecting to the presented network with a name of 'TempBuddy_Ctrl' and no password. Once connected to the
   device's WiFi network you can connect to it for configuration using a web browser via the URL:
-  http://192.168.1.1/admin. This will pop up an authentication dialogue requesting a user and password. 
-  Initially the user is 'admin' and password is 'admin' but can be changed. This will display the current 
-  device settings and allow the user to make desired configuration changes to the device. When the Network 
-  settings are changed the device will reboot and attempt to connect to the configured network. This code 
-  also allows for the device to be equiped with a factory reset button. To perform a factory reset the factory 
-  reset button must supply a HIGH to its input while the device is rebooted. Upon reboot if the factory reset 
-  button is HIGH the stored settings in flash will be replaced with the original factory default setttings. 
-  The factory reset button also serves another purpose during the normal operation of the device. If pressed 
-  breifly the device will flash out the last octet of its IP Address. It does this using the built-in LED. Each 
-  digit of the last octet is flashed out with a breif rapid flash between the blink count for each digit. Once 
-  all digits have been flashed out the LED will do a long rapid flash. Also, one may use the factory reset button 
-  to obtain the full IP Address of the device by keeping the ractory reset button pressed during normal device 
-  operation for more than 6 seconds. When flashing out the IP address the device starts with the first digit of 
-  the first octet and flashes slowly that number of times, then it performs a rapid flash to indicate it is on 
-  to the next digit. Once all digits in an octet have been flashed out the device performs a second after digit 
-  rapid flash to indicate it has moved onto a new octet. 
-  
+  http://192.168.1.1/admin. This will pop up an authentication dialogue requesting a user and password.
+  Initially the user is 'admin' and password is 'admin' but can be changed. This will display the current
+  device settings and allow the user to make desired configuration changes to the device. When the Network
+  settings are changed the device will reboot and attempt to connect to the configured network. This code
+  also allows for the device to be equiped with a factory reset button. To perform a factory reset the factory
+  reset button must supply a HIGH to its input while the device is rebooted. Upon reboot if the factory reset
+  button is HIGH the stored settings in flash will be replaced with the original factory default setttings.
+  The factory reset button also serves another purpose during the normal operation of the device. If pressed
+  breifly the device will flash out the last octet of its IP Address. It does this using the built-in LED. Each
+  digit of the last octet is flashed out with a breif rapid flash between the blink count for each digit. Once
+  all digits have been flashed out the LED will do a long rapid flash. Also, one may use the factory reset button
+  to obtain the full IP Address of the device by keeping the ractory reset button pressed during normal device
+  operation for more than 6 seconds. When flashing out the IP address the device starts with the first digit of
+  the first octet and flashes slowly that number of times, then it performs a rapid flash to indicate it is on
+  to the next digit. Once all digits in an octet have been flashed out the device performs a second after digit
+  rapid flash to indicate it has moved onto a new octet.
+
   I will demonstrate how this works below by representting a single flash of the LED as a dash '-'. I will represent
   the post digit rapid flash with three dots '...', and finally I will represent the end of sequence long flash
-  using 10 dots '..........'. 
+  using 10 dots '..........'.
 
   Using the above the IP address of 192.168.123.71 would be flashed out as follows:
-  1                     9       2       . 1               6                   8       . 1       2         3       .             7     1           
+  1                     9       2       . 1               6                   8       . 1       2         3       .             7     1
   - ... - - - - - - - - - ... - - ... ... - ... - - - - - - ... - - - - - - - - ... ... - ... - - ... - - - ... ... - - - - - - - ... - ..........
 
   The short button press version of the above would simply be the last octet so in this case it would be:
@@ -55,7 +55,7 @@
   - - - - - - - ... - ..........
 
   The last octet is useful if you know the network portion of the IP Address the device would be attaching to but
-  are not sure what the assigned host portion of the address is, of course this is for network masks of 255.255.255.0. 
+  are not sure what the assigned host portion of the address is, of course this is for network masks of 255.255.255.0.
 */
 
 // ************************************************************************************
@@ -113,10 +113,10 @@ void checkIpDisplayRequest(void);
 
 void sendHtmlPageUsingTemplate(
   int code,
-  String title, 
-  String heading, 
-  String &content, 
-  String redirectUrl = "", 
+  String title,
+  String heading,
+  String &content,
+  String redirectUrl = "",
   int delaySeconds = 3
 );
 
@@ -129,7 +129,7 @@ void initWebServer(void);
 /**
  * #### SETUP() - REQUIRED FUNCTION ####
  * This function is the required setup() function and it is
- * where the initialization of the application happens. 
+ * where the initialization of the application happens.
 */
 void setup() {
     // Configure pin modes...
@@ -157,9 +157,9 @@ void setup() {
     Serial.println(F("Device Initialization Complete."));
 }
 
-/** 
+/**
  * #### LOOP() - REQUIRED FUNCTION ####
- * 
+ *
  * This is the required loop() function of the applicaiton.
  * Here is where all functionality happens or starts to happen.
 */
@@ -181,7 +181,7 @@ void loop() {
 
 /**
  * Detects and reacts to a reqest for factory reset
- * during the boot-up. Also loads settings from 
+ * during the boot-up. Also loads settings from
  * EEPROM if there are saved settings.
 */
 void resetOrLoadSettings() {
@@ -189,6 +189,9 @@ void resetOrLoadSettings() {
         Serial.println(F("\nPerforming Factory Reset..."));
         settings.factoryDefault();
         Serial.println(F("Factory reset complete."));
+        while(digitalRead(RESTORE_PIN) == HIGH) { // Wait for pin to be released to continue...
+            yield();
+        }
     } else { // Normal load restore pin not pressed...
         // Load from EEPROM if applicable...
         settings.loadSettings();
@@ -196,7 +199,7 @@ void resetOrLoadSettings() {
 }
 
 /**
- * This function is in charge of initially starting the 
+ * This function is in charge of initially starting the
  * network, in either AP Mode or External WiFi mode based
  * on if newtwork settings are factory default or not.
 */
@@ -225,7 +228,7 @@ void checkIpDisplayRequest() {
     if (counter > 0) { // The reset button was pressed...
         dumpFirmwareVersion();
     }
-    
+
     if (counter > 0 && counter < 6) { // Reset button was pressed for less than 6 seconds...
         Serial.print(F("Device Address is: "));
         Serial.println(myWifi.getIpAddress());
@@ -241,7 +244,7 @@ void checkIpDisplayRequest() {
 
 /**
  * This function handles the operations that are specific to the device.
- * Specifically speaking it handles turning on or off the controlled outlet 
+ * Specifically speaking it handles turning on or off the controlled outlet
  * based on user input if in Manual Mode or based on Temperature if in Auto Mode.
  * This is the only place in code that should be controlling the controlled outlet
  * of the device. Everywere else simply interacts with this function by maintaining
@@ -283,7 +286,7 @@ unsigned long lastTempBuddyRead = 0UL;
 
 /**
  * This function handles reaching out to the TempBuddy device for the current temperature
- * periodically. This functionality is throttled to only run once a minute as running it too 
+ * periodically. This functionality is throttled to only run once a minute as running it too
  * often can degrade the device's ability to provide other functionality like answer clients'
  * web requests and signal IP Address as requested.
 */
@@ -352,19 +355,19 @@ void initWebServer() {
 
 /**
  * #### ENDPOINT HANDLER ("/" AKA Root) ####
- * This is the Root endpoint handler when the client sends a 
+ * This is the Root endpoint handler when the client sends a
  * request to the Root endpoint.
 */
 void endpointHandlerRoot() {
   String content = "";
-  
+
   // Handle incoming parameters...
   if (webServer.arg("source").equalsIgnoreCase("manualcontrols") && !settings.getIsAutoControl()) { // <----------------------- AutoControl is OFF...
     String autoControl = webServer.arg("autocontrol");
     if (!autoControl.isEmpty()) { // Incoming auto control update from Manual Controls...
       settings.setIsAutoControl(autoControl.equalsIgnoreCase("enabled"));
       settings.saveSettings();
-    } 
+    }
     if (!settings.getIsAutoControl()) {
       if (webServer.arg("control").equalsIgnoreCase("off")) { // Parameter found to turn control off...
         settings.setIsControlOn(false);
@@ -427,7 +430,7 @@ void endpointHandlerRoot() {
     String temp = String(AUTO_CONTROLS_SECTION);
     temp.replace("${desiredtemp}", String(settings.getDesiredTemp()));
     temp.replace("${temppadding}", String(settings.getTempPadding()));
-    content = content + temp;    
+    content = content + temp;
   }
 
   sendHtmlPageUsingTemplate(200, settings.getTitle(), settings.getHeading(), content);
@@ -506,8 +509,8 @@ bool adminPageSettingsUpdater() {
   }
   float fTemp = 0;
   if (
-    !desiredTemp.isEmpty() 
-    && (fTemp = desiredTemp.toFloat()) >= -100.0 
+    !desiredTemp.isEmpty()
+    && (fTemp = desiredTemp.toFloat()) >= -100.0
     && fTemp <= 100.0
   ) { // <------------------------------------------------------------------ desiredTemp
     settings.setDesiredTemp(fTemp);
@@ -520,8 +523,8 @@ bool adminPageSettingsUpdater() {
     settings.setTempBuddyIp(budyIp.c_str());
   }
   if (
-    !tempPadding.isEmpty() 
-    && (fTemp = tempPadding.toFloat()) >= 0.0 
+    !tempPadding.isEmpty()
+    && (fTemp = tempPadding.toFloat()) >= 0.0
     && fTemp <= 100.0
   ) { // <------------------------------------------------------------------ tempPadding
     settings.setTempPadding(fTemp);
@@ -536,27 +539,27 @@ bool adminPageSettingsUpdater() {
   return changeRequiresReboot;
 }
 
-/** 
+/**
  * #### ENDPOINT HANDLER ("/admin") ####
- * 
+ *
  * This function shows the admin page for the device. The admin page is also
- * known as the settings page. It is a password protected page that allows 
+ * known as the settings page. It is a password protected page that allows
  * for the software's non-volatile settings to be configured.
- * 
+ *
 */
 void endpointHandlerAdmin() {
-  /* Ensure user authenticated */
-  Serial.println(F("Client requested access to '/admin'..."));
-  if (!webServer.authenticate("admin", settings.getAdminPwd().c_str())) { // User not authenticated...
-    Serial.println(F("Client not(yet) Authenticated!"));
+/* Ensure user authenticated */
+Serial.println(F("Client requested access to '/admin'."));
+if (!webServer.authenticate("admin", settings.getAdminPwd().c_str())) { // User not authenticated...
+  Serial.println(F("Client not(yet) Authenticated!"));
 
-    return webServer.requestAuthentication(DIGEST_AUTH, "AdminRealm", "Authentication failed!");
-  }
-  Serial.println(F("Client has been Authenticated."));
+  return webServer.requestAuthentication(DIGEST_AUTH, "AdminRealm", "Authentication failed!");
+}
+Serial.println(F("Client has been Authenticated."));
 
   String content = ADMIN_SETTINGS_PAGE;
   bool changeRequiresReboot = false;
-  
+
   // Insert data into page contents...
   content.replace("${hostname}", settings.getHostname());
   content.replace("${ssid}", settings.getSsid());
@@ -577,17 +580,17 @@ void endpointHandlerAdmin() {
   content.replace("${temppadding}", String(settings.getTempPadding()));
   content.replace("${adminuser}", settings.getAdminUser());
   content.replace("${adminpwd}", settings.getAdminPwd());
-  
+
   if (webServer.arg("source").equalsIgnoreCase("settings")) { // Refered from settings page so do update...
     changeRequiresReboot = adminPageSettingsUpdater();
-    
+
     /* ********************** *
      * Save Settings To NVRAM *
      * ********************** */
     if (settings.saveSettings()) { // Successful...
       if (changeRequiresReboot) { // Needs to reboot...
         content = F("<div id=\"successful\">Settings update Successful!</div><h4>Device will reboot now...</h4>");
-        
+
         sendHtmlPageUsingTemplate(200, settings.getTitle(), F("Device Settings"), content);
         yield();
         delay(1000);
@@ -597,10 +600,10 @@ void endpointHandlerAdmin() {
 
         sendHtmlPageUsingTemplate(
           200,
-          settings.getTitle(), 
-          F("Device Settings"), 
-          content, 
-          "/", 
+          settings.getTitle(),
+          F("Device Settings"),
+          content,
+          "/",
           5
         );
         yield();
@@ -609,17 +612,17 @@ void endpointHandlerAdmin() {
       }
     } else { // Error...
       content = F("<div id=\"failed\">Error Saving Settings!!!</div>");
-      
+
       sendHtmlPageUsingTemplate(
         500,
-        F("500 - Server Error"), 
-        F("Server Error!"), 
-        content, 
-        "/", 
+        F("500 - Server Error"),
+        F("Server Error!"),
+        content,
+        "/",
         5
       );
       yield();
-      
+
       return;
     }
   }
@@ -630,7 +633,7 @@ void endpointHandlerAdmin() {
 /**
  * #### HANDLER - NOT FOUND ####
  * This is a function which is used to handle web requests when the requested resource is not valid.
- * 
+ *
 */
 void notFoundHandler() {
   String content = F("Just kidding...<br>But seriously what you were looking for doesn't exist.");
@@ -646,12 +649,12 @@ void fileUploadHandler() {
   sendHtmlPageUsingTemplate(400, F("400 Bad Request"), F("Uhhh, Wuuuuut!?"), content);
 }
 
-/** 
+/**
  * #### HTML PAGE TEMPLATE ####
  *
- * This function is used to Generate the HTML for a web page where the 
+ * This function is used to Generate the HTML for a web page where the
  * title, heading and content is provided to the function as parameters.
- * 
+ *
  * @param code The HTTP Code as int.
  * @param title The page's title as String.
  * @param heading The heading that appears on the info page as String.
@@ -666,7 +669,7 @@ void sendHtmlPageUsingTemplate(int code, String title, String heading, String &c
   if (!result.reserve(6000U)) {
     Serial.println(F("WARNING!!! htmlPageTemplate() failed to reserve desired memory!"));
   }
-  
+
   // Prepare the contents of the HTML page...
   result.replace("${title}", title);
   result.replace("${heading}", heading);
