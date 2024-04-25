@@ -26,19 +26,13 @@
             // Structure used for storing of settings related data and persisted into flash
             // *****************************************************************************
             struct NonVolatileSettings {
-                char           hostname         [64]  ; // 63 chars is max size + 1 null
                 char           ssid             [33]  ; // 32 chars is max size + 1 null
                 char           pwd              [64]  ; // 63 chars is max size + 1 null
                 char           adminUser        [13]  ;
                 char           adminPwd         [13]  ;
-                char           apSsid           [33]  ;
-                char           apPwd            [64]  ;
-                char           apNetIp          [16]  ;
-                char           apSubnet         [16]  ;
-                char           apGateway        [16]  ;
                 char           title            [51]  ;
                 char           heading          [51]  ;
-                char           tempBuddyIp      [16]  ;
+                char           tempSensorIp     [16]  ;
                 float          desiredTemp            ;
                 float          tempPadding            ;
                 bool           isHeat                 ;
@@ -47,16 +41,10 @@
             } nvSettings;
 
             struct NonVolatileSettings factorySettings = {
-                "TempBuddy-Ctrl", // <------- hostname
                 "SET_ME", // <--------------- ssid
                 "SET_ME", // <--------------- pwd
                 "admin", // <---------------- adminUser
                 "admin", // <---------------- adminPwd
-                "TempBuddy_Ctrl", // <------- apSsid
-                "P@ssw0rd123", // <---------- apPwd
-                "192.168.1.1", // <---------- apNetIp
-                "255.255.255.0", // <-------- apSubnet
-                "0.0.0.0", // <-------------- apGateway
                 "TempBuddy Control", // <---- title
                 "Device Info", // <---------- heading
                 "0.0.0.0", // <-------------- tempBuddyIp
@@ -74,6 +62,26 @@
                 bool           isControlOn            ;
                 float          lastKnownTemp          ;
             } vSettings;
+
+            // *****************************************************************************
+            // Structure used for storing of settings related data that is set prior to 
+            // compile time and constant in nature.
+            // *****************************************************************************
+            struct ConstSettings {
+                String hostname;
+                String apSsid;
+                String apPwd;
+                String apNetIp;
+                String apSubnet;
+                String apGateway;
+            } cSettings = {
+                "TempBuddy", // <---------- hostname (*later ID is added)
+                "TempBuddy_Ctrl_", // <---- apSsid (*later ID is added)
+                "P@ssw0rd123", // <-------- apPwd
+                "192.168.1.1", // <-------- apNetIp
+                "255.255.255.0", // <------ apSubnet
+                "0.0.0.0", // <------------ apGateway
+            };
             
             void defaultSettings();
             String hashNvSettings(NonVolatileSettings nvSet);
@@ -93,8 +101,7 @@
                                 Getters and Setters 
             =========================================================
             */
-            void           setHostname       (const char *hostname)   ;
-            String         getHostname       ()                       ;
+            
             void           setSsid           (const char *ssid)       ;
             String         getSsid           ()                       ;
             void           setPwd            (const char *pwd)        ;
@@ -103,24 +110,13 @@
             String         getAdminUser      ()                       ;
             void           setAdminPwd       (const char *pwd)        ;
             String         getAdminPwd       ()                       ;
-            
-            void           setApSsid         (const char *ssid)       ;
-            String         getApSsid         ()                       ;
-            void           setApPwd          (const char *pwd)        ;
-            String         getApPwd          ()                       ;
-            void           setApNetIp        (const char *ip)         ;
-            String         getApNetIp        ()                       ;
-            void           setApSubnet       (const char *ip)         ;
-            String         getApSubnet       ()                       ;    
-            void           setApGateway      (const char *ip)         ;
-            String         getApGateway      ()                       ;
         
             void           setTitle          (const char *title)      ;
             String         getTitle          ()                       ;
             void           setHeading        (const char *heading)    ;
             String         getHeading        ()                       ;
-            void           setTempBuddyIp    (const char *ip)         ;
-            String         getTempBuddyIp    ()                       ;
+            void           setTempSensorIp    (const char *ip)         ;
+            String         getTempSensorIp    ()                       ;
             void           setDesiredTemp    (float temp)             ;
             float          getDesiredTemp    ()                       ;
             void           setTempPadding    (float padding)          ;
@@ -133,6 +129,13 @@
             bool           getIsAutoControl  ()                       ;
             void           setLastKnownTemp  (float temp)             ;
             float          getLastKnownTemp  ()                       ;
+
+            String         getHostname       (String deviceId)        ;
+            String         getApSsid         (String deviceId)        ;
+            String         getApPwd          ()                       ;
+            String         getApNetIp        ()                       ;
+            String         getApSubnet       ()                       ;    
+            String         getApGateway      ()                       ;
     };
     
 #endif

@@ -85,19 +85,13 @@ bool Settings::loadSettings() {
 */
 String Settings::hashNvSettings(NonVolatileSettings nvSet) {
     String content = "";
-    content = content + String(nvSet.hostname);
     content = content + String(nvSet.ssid);
     content = content + String(nvSet.pwd);
     content = content + String(nvSet.adminUser);
     content = content + String(nvSet.adminPwd);
-    content = content + String(nvSet.apSsid);
-    content = content + String(nvSet.apPwd);
-    content = content + String(nvSet.apNetIp);
-    content = content + String(nvSet.apSubnet);
-    content = content + String(nvSet.apGateway);
     content = content + String(nvSet.title);
     content = content + String(nvSet.heading);
-    content = content + String(nvSet.tempBuddyIp);
+    content = content + String(nvSet.tempSensorIp);
     content = content + String(nvSet.desiredTemp);
     content = content + String(nvSet.tempPadding);
     content = content + String(nvSet.isHeat);
@@ -162,15 +156,11 @@ Getter and Setter Functions
 =================================================================
 */
 
-String Settings::getHostname() {
-  
-    return String(nvSettings.hostname);
-}
+String Settings::getHostname(String deviceId) {
+    String result = cSettings.hostname;
+    result.concat(deviceId);
 
-void Settings::setHostname(const char *hostname) {
-    if (sizeof(hostname) <= sizeof(nvSettings.hostname)) {
-        strcpy(nvSettings.hostname, hostname);
-    }
+    return result;
 }
 
 
@@ -223,63 +213,35 @@ void Settings::setAdminPwd(const char *pwd) {
 }
 
 
-String Settings::getApSsid() {
+String Settings::getApSsid(String deviceId) {
+    String result = cSettings.apSsid;
+    result.concat(deviceId);
 
-    return String(nvSettings.apSsid);
-}
-
-void Settings::setApSsid(const char *ssid) {
-    if (sizeof(ssid) <= sizeof(nvSettings.apSsid)) {
-        strcpy(nvSettings.apSsid, ssid);
-    }
+    return result;
 }
 
 
 String Settings::getApPwd() {
 
-    return String(nvSettings.apPwd);
-}
-
-void Settings::setApPwd(const char *pwd) {
-    if (sizeof(pwd) <= sizeof(nvSettings.apPwd)) {
-        strcpy(nvSettings.apPwd, pwd);
-    }
+    return cSettings.apPwd;
 }
 
 
 String Settings::getApNetIp() {
 
-    return String(nvSettings.apNetIp);
-}
-
-void Settings::setApNetIp(const char *ip) {
-    if (sizeof(ip) <= sizeof(nvSettings.apNetIp)) {
-        strcpy(nvSettings.apNetIp, ip);
-    }
+    return cSettings.apNetIp;
 }
 
 
 String Settings::getApSubnet() {
 
-    return String(nvSettings.apSubnet);
-}
-
-void Settings::setApSubnet(const char *netMask) {
-    if (sizeof(netMask) <= sizeof(nvSettings.apSubnet)) {
-        strcpy(nvSettings.apSubnet, netMask);
-    }
+    return cSettings.apSubnet;
 }
 
 
 String Settings::getApGateway() {
 
-    return String(nvSettings.apGateway);
-}
-
-void Settings::setApGateway(const char *ip) {
-    if (sizeof(ip) <= sizeof(nvSettings.apGateway)) {
-        strcpy(nvSettings.apGateway, ip);
-    }
+    return cSettings.apGateway;
 }
 
 
@@ -315,14 +277,14 @@ void Settings::setIsHeat(bool isHeat) {
 }
 
 
-String Settings::getTempBuddyIp() {
+String Settings::getTempSensorIp() {
 
-    return String(nvSettings.tempBuddyIp);
+    return String(nvSettings.tempSensorIp);
 }
 
-void Settings::setTempBuddyIp(const char *ip) {
-    if (sizeof(ip) <= sizeof(nvSettings.tempBuddyIp)) {
-        strcpy(nvSettings.tempBuddyIp, ip);
+void Settings::setTempSensorIp(const char *ip) {
+    if (sizeof(ip) <= sizeof(nvSettings.tempSensorIp)) {
+        strcpy(nvSettings.tempSensorIp, ip);
     }
 }
 
@@ -394,19 +356,13 @@ Private Functions
 */
 void Settings::defaultSettings() {
     // Default the settings..
-    strcpy(nvSettings.hostname, factorySettings.hostname);
     strcpy(nvSettings.ssid, factorySettings.ssid);
     strcpy(nvSettings.pwd, factorySettings.pwd);
     strcpy(nvSettings.adminUser, factorySettings.adminUser);
     strcpy(nvSettings.adminPwd, factorySettings.adminPwd);
-    strcpy(nvSettings.apSsid, factorySettings.apSsid);
-    strcpy(nvSettings.apPwd, factorySettings.apPwd);
-    strcpy(nvSettings.apNetIp, factorySettings.apNetIp);
-    strcpy(nvSettings.apSubnet, factorySettings.apSubnet);
-    strcpy(nvSettings.apGateway, factorySettings.apGateway);
     strcpy(nvSettings.title, factorySettings.title);
     strcpy(nvSettings.heading, factorySettings.heading);
-    strcpy(nvSettings.tempBuddyIp, factorySettings.tempBuddyIp);
+    strcpy(nvSettings.tempSensorIp, factorySettings.tempSensorIp);
     nvSettings.desiredTemp = factorySettings.desiredTemp;
     nvSettings.tempPadding = factorySettings.tempPadding;
     nvSettings.isAutoControl = factorySettings.isAutoControl;

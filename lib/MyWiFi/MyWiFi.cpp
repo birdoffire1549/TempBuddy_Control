@@ -50,7 +50,12 @@ bool MyWiFi::startAPMode(String hostname, String ip, String subnet, String gatew
   bool ret = WiFi.softAP(ssid, pwd);
   Serial.println(ret ? F("Complete.") : F("Failed!"));
   if (ret) {
-    Serial.printf("\nUse the following to connect:\n\tSSID: %s\n\tPwd: %s\n\n", ssid.c_str(), pwd.c_str());
+    Serial.printf(
+      "To setup device use the following settings:\n\tSSID: %s\n\tPwd: %s\n\tAdmin Page: https://%s/admin\n\tDefault User: admin\n\tDefault Password: P@ssw0rd123\n\n", 
+      ssid.c_str(), 
+      pwd.c_str(), 
+      ip.c_str()
+    );
   }
 
   return ret;
@@ -144,15 +149,22 @@ bool MyWiFi::connectToNetwork(String hostname, String ssid, String pwd) {
   return connected;
 }
 
-
-
-
-/*
-  Indicates if the WiFi is in a connected status.
-
-  @return Returns true if the device is in a conencted wifi status as bool.
+/**
+ * Indicates if the WiFi is in a connected status.
+ *
+ * @return Returns true if the device is in a conencted wifi status as bool.
 */
 bool MyWiFi::isConnected() {
 
   return WiFi.isConnected();
+}
+
+/**
+ * Used to fetch the MAC Address of the Device.
+ * 
+ * @return Returns the device's MAC Address as String.
+*/
+String MyWiFi::getMacAddress() {
+
+  return WiFi.macAddress();
 }

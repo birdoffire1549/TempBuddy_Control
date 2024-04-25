@@ -35,6 +35,7 @@
       bool startAPMode(String hostname, String ip, String subnet, String gateway, String ssid, String pwd);
       bool isApMode();
       bool isStaMode();
+      String getMacAddress();
   };
 
 #endif

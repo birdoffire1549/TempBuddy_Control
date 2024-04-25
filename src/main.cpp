@@ -64,15 +64,16 @@
 
 #include <Arduino.h>
 #include <ESP_EEPROM.h>
-#include "ExampleSecrets.h"
-#include "Secrets.h"
+#include <ExampleSecrets.h>
+#include <Secrets.h>
 #include <ESP8266WebServerSecure.h>
 #include "HtmlContent.h"
+#include <ArduinoJson.h>
 
-#include "Utils.h"
-#include "MyWiFi.h"
-#include "Settings.h"
-#include "ParseUtils.h"
+#include <Utils.h>
+#include <MyWiFi.h>
+#include <Settings.h>
+#include <ParseUtils.h>
 
 #include <ESP8266HTTPClient.h>
 #include <WString.h>
@@ -81,7 +82,7 @@
 // Define Statements
 // ************************************************************************************
 
-#define FIRMWARE_VERSION "5.2.1"
+#define FIRMWARE_VERSION "5.3.0"
 
 #define LED_PIN 5
 #define OUTLET_PIN 4
@@ -99,6 +100,7 @@ BearSSL::ServerSessions serverCache(5);
 // Global worker variables
 // ************************************************************************************
 bool firstLoop = true;
+String deviceId = "";
 
 // ************************************************************************************
 // Function Prototypes
@@ -204,10 +206,11 @@ void resetOrLoadSettings() {
  * on if newtwork settings are factory default or not.
 */
 void doStartNetwork() {
+     deviceId = Utils::genDeviceIdFromMacAddr(myWifi.getMacAddress());
     if (settings.isNetworkSet()) {
-        myWifi.connectToNetwork(settings.getHostname(), settings.getSsid(), settings.getPwd());
+        myWifi.connectToNetwork(settings.getHostname(deviceId), settings.getSsid(), settings.getPwd());
     } else {
-        myWifi.startAPMode(settings.getHostname(), settings.getApNetIp(), settings.getApSubnet(), settings.getApGateway(), settings.getApSsid(), settings.getApPwd());
+        myWifi.startAPMode(settings.getHostname(deviceId), settings.getApNetIp(), settings.getApSubnet(), settings.getApGateway(), settings.getApSsid(deviceId), settings.getApPwd());
     }
 }
 
@@ -219,27 +222,32 @@ void doStartNetwork() {
  * entire IP Address.
 */
 void checkIpDisplayRequest() {
-    int counter = 0;
-    while (digitalRead(RESTORE_PIN) == HIGH) { // The restore button is being pressed...
-        counter++;
-        delay(1000);
+  int counter = 0;
+  while (digitalRead(RESTORE_PIN) == HIGH) { // The restore button is being pressed...
+    counter++;
+    delay(1000);
+  }
+
+  if (counter > 0) { // The reset button was pressed...
+    dumpFirmwareVersion();
+    if (myWifi.isApMode()) {
+      Serial.printf(
+        "To setup device use the following settings:\n\tSSID: '%s'\n\tPwd: '%s'\n\tAdmin Page: 'https://%s/admin\n\tDefault' User: 'admin'\n\tDefault Password: 'admin'\n\n", 
+        settings.getApSsid(deviceId).c_str(), 
+        settings.getApPwd().c_str(), 
+        myWifi.getIpAddress().c_str()
+      );
+    } else {
+      Serial.print(F("Device Address is: "));
+      Serial.println(myWifi.getIpAddress());
     }
+  }
 
-    if (counter > 0) { // The reset button was pressed...
-        dumpFirmwareVersion();
-    }
-
-    if (counter > 0 && counter < 6) { // Reset button was pressed for less than 6 seconds...
-        Serial.print(F("Device Address is: "));
-        Serial.println(myWifi.getIpAddress());
-
-        Utils::signalIpAddress(LED_PIN, myWifi.getIpAddress(), true);
-    } else if (counter >= 6) { // Reset button was pressed for 6 seconds or more...
-        Serial.print(F("Device Address is: "));
-        Serial.println(myWifi.getIpAddress());
-
-        Utils::signalIpAddress(LED_PIN, myWifi.getIpAddress(), false);
-    }
+  if (counter > 0 && counter < 6) { // Reset button was pressed for less than 6 seconds...        
+    Utils::signalIpAddress(LED_PIN, myWifi.getIpAddress(), true);
+  } else if (counter >= 6) { // Reset button was pressed for 6 seconds or more...
+    Utils::signalIpAddress(LED_PIN, myWifi.getIpAddress(), false);
+  }
 }
 
 /**
@@ -252,7 +260,7 @@ void checkIpDisplayRequest() {
 */
 void doHandleDeviceOperations() {
     // Handle the Auto Control functionality...
-    if (settings.getIsAutoControl() && !settings.getTempBuddyIp().isEmpty()) { // Auto Control is active...
+    if (settings.getIsAutoControl() && !settings.getTempSensorIp().isEmpty()) { // Auto Control is active...
         if (settings.getIsHeat()) { // In Heat control mode...
             if (settings.getLastKnownTemp() > settings.getDesiredTemp()) { // It is too warm...
                 settings.setIsControlOn(false);
@@ -291,29 +299,33 @@ unsigned long lastTempBuddyRead = 0UL;
  * web requests and signal IP Address as requested.
 */
 void doHandleReadTempBuddy() {
-    if (!settings.getTempBuddyIp().isEmpty() && (lastTempBuddyRead == 0UL || millis() - lastTempBuddyRead >= 60000)) { // Need to check TempBuddy...
+    if (!settings.getTempSensorIp().isEmpty() && (lastTempBuddyRead == 0UL || millis() - lastTempBuddyRead >= 60000)) { // Need to check TempBuddy...
         lastTempBuddyRead = millis();
-        if (ParseUtils::validDotNotationIp(settings.getTempBuddyIp())) { // IP Address is valid...
+        if (ParseUtils::validDotNotationIp(settings.getTempSensorIp())) { // IP Address is valid...
             if (myWifi.isConnected()) { // Connected to WiFi...
-                WiFiClient client;
-                HTTPClient http;
+                WiFiClientSecure client;
+                client.setInsecure();
+                HTTPClient https;
 
-                http.begin(client, String(F("http://")) + settings.getTempBuddyIp() + "/");
+                https.begin(client, settings.getTempSensorIp(), 443, "/api/info");
 
-                int respCode = http.GET();
+                int respCode = https.GET();
                 if (respCode >= 200 && respCode <= 299) { // Good response...
                     Serial.printf("Got a '%d' response code from TempBuddy.\n", respCode);
-                    String payload = http.getString();
+                    String payload = https.getString();
                     if (!payload.isEmpty()) { // Something in payload...
-                        String temp = ParseUtils::parseByKeyword(payload, F("Temperature:"), F("&deg;"));
-                        temp.trim();
-                        if (!temp.isEmpty()) { // String not empty...
-                           settings.setLastKnownTemp(temp.toFloat());
-                        }
+                      JsonDocument data;
+                      deserializeJson(data, payload);
+                      if (String(data["temp_unit"]).equalsIgnoreCase("f")) {
+                        settings.setLastKnownTemp(data["temp"]);
+                      } else if (String(data["temp_unit"]).equalsIgnoreCase("c")) {
+                        float temp = data["temp"];
+                        settings.setLastKnownTemp(((temp * 9/5) + 32));
+                      }
                     }
                 }
 
-                http.end();
+                https.end();
               }
           }
       }
@@ -405,11 +417,11 @@ void endpointHandlerRoot() {
   }
 
   // Build and send Information Page...
-  String tBudId = settings.getTempBuddyIp();
+  String tBudId = settings.getTempSensorIp();
   bool tempBuddyEnabled = !tBudId.isEmpty() && !tBudId.equals("0.0.0.0");
 
   String temp = INFO_PAGE;
-  temp.replace("${tempbuddyip}", (!tempBuddyEnabled ? "Not Set" : String(settings.getTempBuddyIp())));
+  temp.replace("${tempsensorip}", (!tempBuddyEnabled ? "Not Set" : String(settings.getTempSensorIp())));
   temp.replace("${lastknowntemp}", (!tempBuddyEnabled ? "N/A" : String(settings.getLastKnownTemp())));
   temp.replace("${controltype}", (settings.getIsHeat() ? "Heat" : "Cool"));
   temp.replace("${autocontrolenabled}", (settings.getIsAutoControl() ? "True" : "False"));
@@ -420,7 +432,7 @@ void endpointHandlerRoot() {
   bool isAutoCtrl = settings.getIsAutoControl();
   String result = "";
   if (!isAutoCtrl) { // AutoControl is OFF...
-    String buddySensorIp = settings.getTempBuddyIp();
+    String buddySensorIp = settings.getTempSensorIp();
     if (buddySensorIp.isEmpty() || buddySensorIp.equals("0.0.0.0")) {
       content = content + String(MANUAL_CONTROLS_ONLY_SECTION);
     } else {
@@ -440,15 +452,9 @@ bool adminPageSettingsUpdater() {
   /* Aquire Incoming Settings */
   String ssid = webServer.arg("ssid");
   String pwd = webServer.arg("pwd");
-  String hostname = webServer.arg("hostname");
-  String apSsid = webServer.arg("apssid");
-  String apPwd = webServer.arg("appwd");
-  String apNetIp = webServer.arg("apnetip");
-  String apSubnet = webServer.arg("apsubnet");
-  String apGateway = webServer.arg("apgateway");
   String title = webServer.arg("title");
   String heading = webServer.arg("heading");
-  String budyIp = webServer.arg("budyip");
+  String sensorIp = webServer.arg("sensorip");
   String isAutoCtrl = webServer.arg("autocontrol");
   String isHeat = webServer.arg("controltype");
   String desiredTemp = webServer.arg("desiredtemp");
@@ -466,30 +472,6 @@ bool adminPageSettingsUpdater() {
   if (!pwd.isEmpty() && !pwd.equals(settings.getPwd())) { // <--------------- pwd
     changeRequiresReboot = true;
     settings.setPwd(pwd.c_str());
-  }
-  if (!hostname.isEmpty()) { // <-------------------------------------------- hostname
-    changeRequiresReboot = true;
-    settings.setHostname(ParseUtils::trunc(hostname, 63).c_str());
-  }
-  if (!apSsid.isEmpty()) { // <---------------------------------------------- apSsid
-    changeRequiresReboot = true;
-    settings.setApSsid(ParseUtils::trunc(apSsid, 32).c_str());
-  }
-  if (!apPwd.isEmpty()) { // <----------------------------------------------- apPwd
-    changeRequiresReboot = true;
-    settings.setApPwd(apPwd.c_str());
-  }
-  if (!apNetIp.isEmpty()) { // <--------------------------------------------- apNetIp
-    changeRequiresReboot = true;
-    settings.setApNetIp(apNetIp.c_str());
-  }
-  if (!apSubnet.isEmpty()) { // <-------------------------------------------- apSubnet
-    changeRequiresReboot = true;
-    settings.setApSubnet(apSubnet.c_str());
-  }
-  if (!apGateway.isEmpty()) { // <------------------------------------------- apGateway
-    changeRequiresReboot = true;
-    settings.setApGateway(apGateway.c_str());
   }
   if (!title.isEmpty()) { // <----------------------------------------------- title
     settings.setTitle(title.c_str());
@@ -515,12 +497,12 @@ bool adminPageSettingsUpdater() {
   ) { // <------------------------------------------------------------------ desiredTemp
     settings.setDesiredTemp(fTemp);
   }
-  if (budyIp.isEmpty() || ParseUtils::validDotNotationIp(budyIp)) { // <---- budyIp
-    if (!budyIp.isEmpty() && settings.getTempBuddyIp().isEmpty()) {
+  if (sensorIp.isEmpty() || ParseUtils::validDotNotationIp(sensorIp)) { // <---- sensorIp
+    if (!sensorIp.isEmpty() && settings.getTempSensorIp().isEmpty()) {
       // FYI: This prevents inital action before first read
       settings.setLastKnownTemp(settings.getDesiredTemp());
     }
-    settings.setTempBuddyIp(budyIp.c_str());
+    settings.setTempSensorIp(sensorIp.c_str());
   }
   if (
     !tempPadding.isEmpty()
@@ -561,17 +543,11 @@ Serial.println(F("Client has been Authenticated."));
   bool changeRequiresReboot = false;
 
   // Insert data into page contents...
-  content.replace("${hostname}", settings.getHostname());
   content.replace("${ssid}", settings.getSsid());
   content.replace("${pwd}", settings.getPwd());
-  content.replace("${apssid}", settings.getApSsid());
-  content.replace("${appwd}", settings.getApPwd());
-  content.replace("${apnetip}", settings.getApNetIp());
-  content.replace("${apsubnet}", settings.getApSubnet());
-  content.replace("${apgateway}", settings.getApGateway());
   content.replace("${title}", settings.getTitle());
   content.replace("${heading}", settings.getHeading());
-  content.replace("${budyip}", settings.getTempBuddyIp());
+  content.replace("${sensorip}", settings.getTempSensorIp());
   content.replace("${autocontrolenabledchecked}", settings.getIsAutoControl() ? "checked" : "");
   content.replace("${autocontroldisabledchecked}", settings.getIsAutoControl() ? "" : "checked");
   content.replace("${controllingheatchecked}", settings.getIsHeat() ? "checked" : "");
