@@ -91,7 +91,8 @@ String Settings::hashNvSettings(NonVolatileSettings nvSet) {
     content = content + String(nvSet.adminPwd);
     content = content + String(nvSet.title);
     content = content + String(nvSet.heading);
-    content = content + String(nvSet.tempSensorIp);
+    content = content + String(nvSet.tempSensorID);
+    content = content + String(nvSet.tempSensorName);
     content = content + String(nvSet.desiredTemp);
     content = content + String(nvSet.tempPadding);
     content = content + String(nvSet.isHeat);
@@ -277,14 +278,26 @@ void Settings::setIsHeat(bool isHeat) {
 }
 
 
-String Settings::getTempSensorIp() {
+String Settings::getTempSensorID() {
 
-    return String(nvSettings.tempSensorIp);
+    return String(nvSettings.tempSensorID);
 }
 
-void Settings::setTempSensorIp(const char *ip) {
-    if (sizeof(ip) <= sizeof(nvSettings.tempSensorIp)) {
-        strcpy(nvSettings.tempSensorIp, ip);
+void Settings::setTempSensorID(const char *id) {
+    if (sizeof(id) <= sizeof(nvSettings.tempSensorID)) {
+        strcpy(nvSettings.tempSensorID, id);
+    }
+}
+
+
+String Settings::getTempSensorName() {
+
+    return String(nvSettings.tempSensorName);
+}
+
+void Settings::setTempSensorName(const char *name) {
+    if (sizeof(name) <= sizeof(nvSettings.tempSensorName)) {
+        strcpy(nvSettings.tempSensorName, name);
     }
 }
 
@@ -362,7 +375,8 @@ void Settings::defaultSettings() {
     strcpy(nvSettings.adminPwd, factorySettings.adminPwd);
     strcpy(nvSettings.title, factorySettings.title);
     strcpy(nvSettings.heading, factorySettings.heading);
-    strcpy(nvSettings.tempSensorIp, factorySettings.tempSensorIp);
+    strcpy(nvSettings.tempSensorID, factorySettings.tempSensorID);
+    strcpy(nvSettings.tempSensorName, factorySettings.tempSensorName);
     nvSettings.desiredTemp = factorySettings.desiredTemp;
     nvSettings.tempPadding = factorySettings.tempPadding;
     nvSettings.isAutoControl = factorySettings.isAutoControl;

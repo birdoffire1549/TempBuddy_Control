@@ -188,3 +188,7 @@ void Utils::displayDone(int ledPin) {
     delay(100);
   }
 }
+
+float Utils::convertCelciusToFahrenheit(float celcius) {
+  return ((celcius * 9/5) + 32);
+}

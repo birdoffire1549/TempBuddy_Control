@@ -27,6 +27,7 @@
       static String genDeviceIdFromMacAddr(String macAddress);
       static String hashString(String str);
       static void signalIpAddress(int ledPin, String ipAddress, bool quick);
+      static float convertCelciusToFahrenheit(float celcius);
   };
 
 #endif

@@ -32,7 +32,8 @@
                 char           adminPwd         [13]  ;
                 char           title            [51]  ;
                 char           heading          [51]  ;
-                char           tempSensorIp     [16]  ;
+                char           tempSensorID     [51]  ;
+                char           tempSensorName   [51]  ;
                 float          desiredTemp            ;
                 float          tempPadding            ;
                 bool           isHeat                 ;
@@ -47,7 +48,8 @@
                 "admin", // <---------------- adminPwd
                 "TempBuddy Control", // <---- title
                 "Device Info", // <---------- heading
-                "0.0.0.0", // <-------------- tempBuddyIp
+                "", // <--------------------- tempSensorID
+                "", // <--------------------- tempSensorName
                 72.0, // <------------------- desiredTemp
                 0.5, // <-------------------- tempPadding
                 true, // <------------------- isHeat
@@ -80,7 +82,7 @@
                 "P@ssw0rd123", // <-------- apPwd
                 "192.168.1.1", // <-------- apNetIp
                 "255.255.255.0", // <------ apSubnet
-                "0.0.0.0", // <------------ apGateway
+                "192.168.1.1", // <-------- apGateway
             };
             
             void defaultSettings();
@@ -102,33 +104,35 @@
             =========================================================
             */
             
-            void           setSsid           (const char *ssid)       ;
-            String         getSsid           ()                       ;
-            void           setPwd            (const char *pwd)        ;
-            String         getPwd            ()                       ;
-            void           setAdminUser      (const char *user)       ;
-            String         getAdminUser      ()                       ;
-            void           setAdminPwd       (const char *pwd)        ;
-            String         getAdminPwd       ()                       ;
+            void           setSsid             (const char *ssid)       ;
+            String         getSsid             ()                       ;
+            void           setPwd              (const char *pwd)        ;
+            String         getPwd              ()                       ;
+            void           setAdminUser        (const char *user)       ;
+            String         getAdminUser        ()                       ;
+            void           setAdminPwd         (const char *pwd)        ;
+            String         getAdminPwd         ()                       ;
         
-            void           setTitle          (const char *title)      ;
-            String         getTitle          ()                       ;
-            void           setHeading        (const char *heading)    ;
-            String         getHeading        ()                       ;
-            void           setTempSensorIp    (const char *ip)         ;
-            String         getTempSensorIp    ()                       ;
-            void           setDesiredTemp    (float temp)             ;
-            float          getDesiredTemp    ()                       ;
-            void           setTempPadding    (float padding)          ;
-            float          getTempPadding    ()                       ;
-            void           setIsHeat         (bool isHeat)            ;
-            bool           getIsHeat         ()                       ;
-            void           setIsControlOn    (bool isOn)              ;
-            bool           getIsControlOn    ()                       ;
-            void           setIsAutoControl  (bool autoOn)            ; 
-            bool           getIsAutoControl  ()                       ;
-            void           setLastKnownTemp  (float temp)             ;
-            float          getLastKnownTemp  ()                       ;
+            void           setTitle            (const char *title)      ;
+            String         getTitle            ()                       ;
+            void           setHeading          (const char *heading)    ;
+            String         getHeading          ()                       ;
+            void           setTempSensorID     (const char *ip)         ;
+            String         getTempSensorID     ()                       ;
+            void           setTempSensorName   (const char *ip)         ;
+            String         getTempSensorName   ()                       ;
+            void           setDesiredTemp      (float temp)             ;
+            float          getDesiredTemp      ()                       ;
+            void           setTempPadding      (float padding)          ;
+            float          getTempPadding      ()                       ;
+            void           setIsHeat           (bool isHeat)            ;
+            bool           getIsHeat           ()                       ;
+            void           setIsControlOn      (bool isOn)              ;
+            bool           getIsControlOn      ()                       ;
+            void           setIsAutoControl    (bool autoOn)            ; 
+            bool           getIsAutoControl    ()                       ;
+            void           setLastKnownTemp    (float temp)             ;
+            float          getLastKnownTemp    ()                       ;
 
             String         getHostname       (String deviceId)        ;
             String         getApSsid         (String deviceId)        ;
