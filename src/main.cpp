@@ -9,12 +9,13 @@
   The device using this software is refered to as a TempBuddy Control Unit.
   It was designed to work with another project that is refered to as a TempBuddy Sensor, that
   particular device has the ability to sense and report Temperature and Humidity data via a web
-  interface. This device can be pointed at the IP of a TempBuddy device and read its temp and then
-  react to the temperature by controlling an outlet which can have a Heating or Cooling device
-  attached to it. If no TempBuddy is connected to this device then the user has the ability to
+  interface. The sensor device also broadcasts its data over the network. This device can use these
+  broadcasts to find and track a sensor on the same network. By doing this the control can read its 
+  temp and then react to the temperature by controlling an outlet which can have a Heating or Cooling device
+  attached to it. If no sensor is being tracked by this device then the user has the ability to
   manually control the attached outlet through the hosted webpage. This device also hosts a webpage
   that can be accessed using the device's IP Address and Port 80. Also this device can be configured
-  by accessing its admin page either via an existing WiFi or the device's TempBuddy_Ctrl wifi network
+  by accessing its admin page either via an existing WiFi or the device's 'TempBuddy_Ctrl_<uid>' wifi network
   when it is in AP Mode.
 
   Hosted Endpoints:
@@ -23,8 +24,8 @@
 
   More Detailed:
   When device is first programmed it boots up as an AccessPoint that can be connected to using a computer,
-  by connecting to the presented network with a name of 'TempBuddy_Ctrl' and no password. Once connected to the
-  device's WiFi network you can connect to it for configuration using a web browser via the URL:
+  by connecting to the presented network with a name of 'TempBuddy_Ctrl_<uid>' and no password. Once connected 
+  to the device's WiFi network you can connect to it for configuration using a web browser via the URL:
   http://192.168.1.1/admin. This will pop up an authentication dialogue requesting a user and password.
   Initially the user is 'admin' and password is 'admin' but can be changed. This will display the current
   device settings and allow the user to make desired configuration changes to the device. When the Network
@@ -65,9 +66,6 @@
 #include <map>
 #include <Arduino.h>
 #include <ESP_EEPROM.h>
-#include <ExampleSecrets.h>
-#include <Secrets.h>
-//#include <ESP8266WebServerSecure.h>
 #include <ESP8266WebServer.h> 
 #include <DNSServer.h>
 #include <HtmlContent.h>
@@ -86,7 +84,7 @@
 // Define Statements
 // ************************************************************************************
 
-#define FIRMWARE_VERSION "6.1.0"
+#define FIRMWARE_VERSION "6.1.1"
 
 #define LED_PIN 5
 #define OUTLET_PIN 4
@@ -96,9 +94,6 @@
 // Setup of Services
 // ************************************************************************************
 Settings settings = Settings();
-// MyWiFi myWifi = MyWiFi();
-// BearSSL::ESP8266WebServerSecure webServer(/*Port*/443);
-// BearSSL::ServerSessions serverCache(5);
 ESP8266WebServer webServer(80);
 WiFiUDP udp;
 DNSServer dnsServer;
@@ -108,8 +103,6 @@ DNSServer dnsServer;
 // ************************************************************************************
 byte udpPktBuf[UDP_TX_PACKET_MAX_SIZE];
 String deviceId = "";
-//String connectedSensorID = "";
-//String connectedSensorName = "";
 float sensorLastTempRead = 0.0f;
 std::map<String/*ID*/, unsigned long> recentSensorLastSeen;
 std::map<String/*ID*/, String/*Name*/> recentSensorNames;
@@ -164,7 +157,9 @@ void setup() {
     resetOrLoadSettings();
     doStartNetwork();
     initWebServer();
+
     delay(50);
+    Serial.printf("Initialization Complete.\nFirmware Version: %s\n\n", FIRMWARE_VERSION);
 }
 
 /**
@@ -181,6 +176,7 @@ void loop() {
 
     doHandleBroadcasts();
     doHandleDeviceOperations();
+
     yield();
 }
 
@@ -192,7 +188,7 @@ void loop() {
 void resetOrLoadSettings() {
     if (digitalRead(RESTORE_PIN) == HIGH) { // Restore button pressed on bootup...
         settings.factoryDefault();
-        while(digitalRead(RESTORE_PIN) == HIGH) { // Wait for pin to be released to continue...
+        while (digitalRead(RESTORE_PIN) == HIGH) { // Wait for pin to be released to continue...
             yield();
         }
     } else { // Normal load restore pin not pressed...
@@ -233,11 +229,22 @@ void doStartNetwork() {
     } else if (!ok) {
       Serial.println("AP Mode Failed!");
       Serial.println("Rebooting in 30 Seconds...");
+      yield();
       delay(30000);
+      
       ESP.restart();
     }
 }
 
+/**
+ * This function attemptes to connect to a specific WiFi network.
+ * This function will attempt to verify connection for up to 10 seconds,
+ * after that time it will simply return the current connection status.
+ * 
+ * @return Returns the connection status as bool, a true will be returned
+ * if a connection was successful, otherwise a false is returned indicating
+ * a connection failure.
+ */
 bool doWiFiSTAMode() {
   WiFi.setOutputPower(20.5F);
   WiFi.setHostname(settings.getHostname(deviceId).c_str());
@@ -254,6 +261,13 @@ bool doWiFiSTAMode() {
   return WiFi.status() == WL_CONNECTED;
 }
 
+/**
+ * This function sets-up the device to serve its own WiFi network
+ * in AP Mode. Returning the status of successfullness.
+ * 
+ * @return Returns a true as bool if the AP setup is successful otherwise
+ * returns a false indicating failure.
+ */
 bool doWiFiAPMode() {
   WiFi.setOutputPower(20.5F);
   WiFi.setHostname(settings.getHostname(deviceId).c_str());
@@ -276,6 +290,7 @@ bool doWiFiAPMode() {
 */
 void doCheckIpDisplayRequest() {
   int counter = 0;
+
   while (digitalRead(RESTORE_PIN) == HIGH) { // The restore button is being pressed...
     counter++;
     delay(1000);
@@ -298,11 +313,18 @@ String getIpAddress() {
   if (WiFi.getMode() == WiFiMode::WIFI_AP) { // WiFi is in AP mode...
 
     return WiFi.softAPIP().toString();
-  } // ELSE: WiFi is not in AP mode...
+  } 
   
+  // WiFi is not in AP mode
   return WiFi.localIP().toString();
 }
 
+/**
+ * This function handles receiving broadcasts from sensors on the network and tracks the 
+ * sensors so that they can be selected from a list by a user later on so that the device
+ * knows what senor it is linked to. When linked to a sensor, this function will parse and 
+ * track the temperature data associated with that sensor.
+ */
 void doHandleBroadcasts() {
   int size = udp.parsePacket();
   if (size > 0) {
@@ -396,8 +418,8 @@ void doHandleDeviceOperations() {
 }
 
 /**
- * #### INITIALIZE ####
- * This is an initialization function for the WebServer.
+ * This function handles initialization of the WebServer.
+ * 
 */
 void initWebServer() {
   /* Setup Endpoint Handlers */
@@ -446,6 +468,7 @@ void endpointHandlerRoot() {
         sendInfoPageWithoutControls("Save Complete!\nReboot Required!!\n\nRebooting Now.");
         yield();
         delay(6000);
+
         ESP.restart();
       }
       statusMessage = "Save Complete!";
