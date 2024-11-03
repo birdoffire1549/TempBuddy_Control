@@ -30,6 +30,7 @@
             ""
             "<div id=\"wrapper\"> "
                 "<h1>${heading}</h1> "
+                "Firmware Version: ${version}"
                 "<div id=\"info\">"
                     "<p>"
                         "${status_message}"
@@ -69,6 +70,7 @@
             ""
             "<div id=\"wrapper\"> "
                 "<h1>${heading}</h1> "
+                "Firmware Version: ${version}"
                 "<div id=\"info\">"
                     "<p>"
                         "${status_message}"
@@ -104,7 +106,7 @@
                                 "<tr><td>Temp Padding:</td><td><input type=\"number\" id=\"temppadding\" name=\"temppadding\" min=\"0.0\" max=\"100.0\" step=\".1\" value=\"${temp_padding}\" /> (&deg;F)</td></tr>"
                                 "<tr><td><button type=\"submit\" name=\"do\" value=\"update_auto\">Update</button></td></tr>"
                             "</table>"
-                            "<table>"
+                            "<table ${manual_hide}>"
                                 "<tr><td>Manual Controls</td></tr>"
                                 "<tr><td><button type=\"submit\" name=\"do\" value=\"btn_on\">On</button></td><td><button type=\"submit\" name=\"do\" value=\"btn_off\">Off</button></td></tr>"
                             "</table>"
@@ -148,6 +150,7 @@
             ""
             "<div id=\"wrapper\"> "
                 "<h1>${heading}</h1> "
+                "Firmware Version: ${version}"
                 "<div id=\"info\">"
                     "<form method=\"post\" action=\"/\"> "
                         "<h2>Application</h2> "
@@ -173,18 +176,4 @@
             "</div> "
         "</html>"
     };
-
-    /**
-     * This is the content HTML for the Update Successful 
-     * message should saving the modified settings to 
-     * memory succeed.
-    */
-    const char PROGMEM UPDATE_SUCCESSFUL_MSG[] = {"<div id=\"successful\">* Update was Successful!</div>"};
-
-    /**
-     * This is the content HTML for the Update Failed 
-     * message should saving the modified settings to 
-     * memory fail.
-    */
-    const char PROGMEM UPDATE_FAILED_MSG[] = {"<div id=\"failed\">* Update Failed!!!</div>"};
 #endif

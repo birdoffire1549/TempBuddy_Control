@@ -86,7 +86,7 @@
 // Define Statements
 // ************************************************************************************
 
-#define FIRMWARE_VERSION "6.0.0"
+#define FIRMWARE_VERSION "6.1.0"
 
 #define LED_PIN 5
 #define OUTLET_PIN 4
@@ -108,8 +108,8 @@ DNSServer dnsServer;
 // ************************************************************************************
 byte udpPktBuf[UDP_TX_PACKET_MAX_SIZE];
 String deviceId = "";
-String connectedSensorID = "";
-String connectedSensorName = "";
+//String connectedSensorID = "";
+//String connectedSensorName = "";
 float sensorLastTempRead = 0.0f;
 std::map<String/*ID*/, unsigned long> recentSensorLastSeen;
 std::map<String/*ID*/, String/*Name*/> recentSensorNames;
@@ -323,7 +323,7 @@ void doHandleBroadcasts() {
               recentSensorLastSeen[deviceId] = millis();
               recentSensorNames[deviceId] = deviceLocation;
               // Update the tracked temp if this is our connected device
-              if (connectedSensorID.equals(deviceId)) { // This is our connected device
+              if (settings.getTempSensorID().equals(deviceId)) { // This is our connected device
                 int tStartIdx = input.indexOf("::T_", p1 + 2);
                 if (tStartIdx != -1) {
                   tStartIdx += 4;
@@ -444,7 +444,8 @@ void endpointHandlerRoot() {
       bool needsReboot = doSaveAdminSettings();
       if (needsReboot) {
         sendInfoPageWithoutControls("Save Complete!\nReboot Required!!\n\nRebooting Now.");
-        delay(3000UL);
+        yield();
+        delay(6000);
         ESP.restart();
       }
       statusMessage = "Save Complete!";
@@ -533,14 +534,12 @@ void doUpdateAutoSettings() {
   settings.setIsAutoControl(webServer.arg("autocontrol").equals("auto_enabled"));
   settings.setIsHeat(webServer.arg("controltype").equals("heat"));
   if (settings.getIsAutoControl()) {
-    connectedSensorID = webServer.arg("sensor");
-    connectedSensorName = recentSensorNames[connectedSensorID];
+    settings.setTempSensorID(webServer.arg("sensor").c_str());
+    settings.setTempSensorName(recentSensorNames[settings.getTempSensorID()].c_str());
   } else {
-    connectedSensorID = "";
-    connectedSensorName = "";
+    settings.setTempSensorID("");
+    settings.setTempSensorName("");
   }
-  settings.setTempSensorID(connectedSensorID.c_str());
-  settings.setTempSensorName(connectedSensorName.c_str());
   settings.setDesiredTemp((webServer.arg("desiredtemp").isEmpty() ? 999.9 : webServer.arg("desiredtemp").toFloat()));
   settings.setTempPadding((webServer.arg("temppadding").isEmpty() ? 999.9 : webServer.arg("temppadding").toFloat()));
   
@@ -556,6 +555,7 @@ void sendAdminPage() {
 
   content.replace("${title}", settings.getTitle());
   content.replace("${heading}", settings.getHeading());
+  content.replace("${version}", FIRMWARE_VERSION);
 
   content.replace("${title}", settings.getTitle());
   content.replace("${heading}", settings.getTitle());
@@ -577,6 +577,7 @@ void sendInfoPageWithoutControls(String statusMessage) {
 
   content.replace("${title}", settings.getTitle());
   content.replace("${heading}", settings.getHeading());
+  content.replace("${version}", FIRMWARE_VERSION);
 
   if (statusMessage.isEmpty()) {
     content.replace("${status_message}", "");
@@ -586,11 +587,11 @@ void sendInfoPageWithoutControls(String statusMessage) {
     content.replace("${status_message}", message);
   }
 
-  if (connectedSensorID.isEmpty()) {
+  if (settings.getTempSensorID().isEmpty()) {
     content.replace("${sensor_name}", "None");
     content.replace("${temp}", "N/A");
   } else {
-    content.replace("${sensor_name}", connectedSensorName);
+    content.replace("${sensor_name}", settings.getTempSensorName().c_str());
     content.replace("${temp}", String(Utils::convertCelciusToFahrenheit(sensorLastTempRead)));
   }
 
@@ -611,6 +612,7 @@ void sendInfoPageWithControls(String statusMessage) {
 
   content.replace("${title}", settings.getTitle());
   content.replace("${heading}", settings.getHeading());
+  content.replace("${version}", FIRMWARE_VERSION);
 
   if (statusMessage.isEmpty()) {
     content.replace("${status_message}", "");
@@ -620,14 +622,15 @@ void sendInfoPageWithControls(String statusMessage) {
     content.replace("${status_message}", message);
   }
 
-  if (connectedSensorID.isEmpty()) {
+  if (settings.getTempSensorID().isEmpty()) {
     content.replace("${sensor_name}", "None");
     content.replace("${temp}", "N/A");
   } else {
-    content.replace("${sensor_name}", connectedSensorName);
+    content.replace("${sensor_name}", settings.getTempSensorName().c_str());
     content.replace("${temp}", String(Utils::convertCelciusToFahrenheit(sensorLastTempRead)));
   }
 
+  content.replace("${control_type}", (settings.getIsHeat() ? "Heat" : "Cool"));
   content.replace("${auto_manual}", (settings.getIsAutoControl() ? "Auto" : "Manual"));
   content.replace("${on_off_status}", (settings.getIsControlOn() ? "On" : "Off"));
   content.replace("${auto_enabled_checked}", (settings.getIsAutoControl() ? "checked" : ""));
@@ -641,13 +644,14 @@ void sendInfoPageWithControls(String statusMessage) {
     String option = SENSOR_OPTION;
     option.replace("${id}", it -> first);
     option.replace("${description}", it -> second);
-    option.replace("${selection_flag}", (connectedSensorID.equals(it -> first) ? "selected" : ""));
+    option.replace("${selection_flag}", (settings.getTempSensorID().equals(it -> first) ? "selected" : ""));
     seenSensorOptions.concat(option);
   }
-  content.replace("${sensor_options}", seenSensorOptions);
 
+  content.replace("${sensor_options}", seenSensorOptions);
   content.replace("${desired_temp}", String(settings.getDesiredTemp()));
   content.replace("${temp_padding}", String(settings.getTempPadding()));
+  content.replace("${manual_hide}", (settings.getIsAutoControl() ? "hidden" : ""));
 
   webServer.send(200, "text/html", content);
   yield();
@@ -665,7 +669,7 @@ void endpointHandlerAdmin() {
   /* Ensure user authenticated */
   if (!webServer.authenticate(settings.getAdminUser().c_str(), settings.getAdminPwd().c_str())) {
     // User not yet authenticated
-    
+
     return webServer.requestAuthentication(DIGEST_AUTH, "AdminRealm", "Authentication failed!");
   }
 
