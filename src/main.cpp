@@ -62,7 +62,6 @@
 // ************************************************************************************
 // Include Statements
 // ************************************************************************************
-
 #include <map>
 #include <Arduino.h>
 #include <ESP_EEPROM.h>
@@ -83,9 +82,7 @@
 // ************************************************************************************
 // Define Statements
 // ************************************************************************************
-
 #define FIRMWARE_VERSION "6.1.1"
-
 #define LED_PIN 5
 #define OUTLET_PIN 4
 #define RESTORE_PIN 14
@@ -231,7 +228,7 @@ void doStartNetwork() {
       Serial.println("Rebooting in 30 Seconds...");
       yield();
       delay(30000);
-      
+
       ESP.restart();
     }
 }
