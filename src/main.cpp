@@ -82,7 +82,7 @@
 // ************************************************************************************
 // Define Statements
 // ************************************************************************************
-#define FIRMWARE_VERSION "6.1.1"
+#define FIRMWARE_VERSION "6.1.2"
 #define LED_PIN 5
 #define OUTLET_PIN 4
 #define RESTORE_PIN 14
@@ -100,7 +100,6 @@ DNSServer dnsServer;
 // ************************************************************************************
 byte udpPktBuf[UDP_TX_PACKET_MAX_SIZE];
 String deviceId = "";
-float sensorLastTempRead = 0.0f;
 std::map<String/*ID*/, unsigned long> recentSensorLastSeen;
 std::map<String/*ID*/, String/*Name*/> recentSensorNames;
 
@@ -348,7 +347,8 @@ void doHandleBroadcasts() {
                   tStartIdx += 4;
                   int tEndIdx = input.indexOf("::", tStartIdx);
                   if (tEndIdx != -1) { // Looks like we got the temp
-                    sensorLastTempRead = input.substring(tStartIdx, tEndIdx).toFloat();
+                    float tempC = input.substring(tStartIdx, tEndIdx).toFloat();
+                    settings.setLastKnownTemp(Utils::convertCelciusToFahrenheit(tempC));
                   }
                 }
               }
@@ -449,6 +449,10 @@ void endpointHandlerRoot() {
     } else if (doAction.equals("update_auto")) { // <-------- Update Auto Controls
       doUpdateAutoSettings();
       statusMessage = "Update Successful!";
+    } else if (doAction.equals("settings")) {
+      sendAdminPage();
+
+      return;
     } else if (
       doAction.equals("btn_on") 
       && !settings.getIsAutoControl()
@@ -612,7 +616,7 @@ void sendInfoPageWithoutControls(String statusMessage) {
     content.replace("${temp}", "N/A");
   } else {
     content.replace("${sensor_name}", settings.getTempSensorName().c_str());
-    content.replace("${temp}", String(Utils::convertCelciusToFahrenheit(sensorLastTempRead)));
+    content.replace("${temp}", String(settings.getLastKnownTemp()));
   }
 
   content.replace("${control_type}", (settings.getIsHeat() ? "Heat" : "Cool"));
@@ -647,7 +651,7 @@ void sendInfoPageWithControls(String statusMessage) {
     content.replace("${temp}", "N/A");
   } else {
     content.replace("${sensor_name}", settings.getTempSensorName().c_str());
-    content.replace("${temp}", String(Utils::convertCelciusToFahrenheit(sensorLastTempRead)));
+    content.replace("${temp}", String(settings.getLastKnownTemp()));
   }
 
   content.replace("${control_type}", (settings.getIsHeat() ? "Heat" : "Cool"));
@@ -672,6 +676,7 @@ void sendInfoPageWithControls(String statusMessage) {
   content.replace("${desired_temp}", String(settings.getDesiredTemp()));
   content.replace("${temp_padding}", String(settings.getTempPadding()));
   content.replace("${manual_hide}", (settings.getIsAutoControl() ? "hidden" : ""));
+  content.replace("${auto_hide}", (!settings.getIsAutoControl() ? "hidden" : ""));
 
   webServer.send(200, "text/html", content);
   yield();
